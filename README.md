@@ -11,7 +11,8 @@ A comprehensive testimonial collection and management platform built with React,
 - **Approval Workflow** - Review and approve testimonials before publishing
 - **Public Display** - Beautiful testimonial walls for public viewing
 - **Embeddable Widgets** - Iframe and JavaScript widgets for external websites
-- **Customizable Templates** - Custom email templates for client outreach
+- **Email & SMS Outreach** - Send testimonial requests via email and SMS
+- **Customizable Templates** - Custom email and SMS templates for client outreach
 - **Dashboard Analytics** - Track response rates and testimonial metrics
 
 ## 🛠 Tech Stack
@@ -31,6 +32,7 @@ A comprehensive testimonial collection and management platform built with React,
 - **Drizzle ORM** for database operations
 - **Passport.js** for authentication
 - **Express Sessions** with PostgreSQL store
+- **Twilio API** for SMS messaging
 
 ### Database
 - **PostgreSQL** with Neon serverless driver
@@ -72,6 +74,11 @@ SESSION_SECRET=your-super-secret-session-key
 ISSUER_URL=https://replit.com
 CLIENT_ID=your-replit-client-id
 CLIENT_SECRET=your-replit-client-secret
+
+# Twilio SMS (optional - for SMS testimonial requests)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_PHONE_NUMBER=your-twilio-phone-number
 
 # Node Environment
 NODE_ENV=development
@@ -139,6 +146,7 @@ Testimonial collection campaigns created by users.
 - description (text)
 - is_active (boolean, default: true)
 - email_settings (jsonb, default template)
+- sms_settings (jsonb, default template)
 - created_at (timestamp)
 - updated_at (timestamp)
 ```
@@ -150,6 +158,7 @@ Client contacts associated with projects.
 - project_id (varchar, foreign key → projects.id)
 - name (varchar, not null)
 - email (varchar, not null)
+- phone (varchar, optional)
 - company (varchar)
 - is_contacted (boolean, default: false)
 - created_at (timestamp)
@@ -255,6 +264,8 @@ testimo/
 - `POST /api/clients` - Add new client
 - `PUT /api/clients/:id` - Update client
 - `DELETE /api/clients/:id` - Delete client
+- `POST /api/clients/:id/send-testimonial-request` - Send email request
+- `POST /api/clients/:id/send-sms-request` - Send SMS request
 
 ### Testimonials
 - `GET /api/testimonials` - Get user's testimonials
@@ -270,11 +281,21 @@ testimo/
 
 ## 🎨 Customization
 
-### Email Templates
-Projects include customizable email templates with placeholders:
+### Email & SMS Templates
+Projects include customizable email and SMS templates with placeholders:
 - `{{projectName}}` - Project name
 - `{{clientName}}` - Client name
 - `{{testimonialUrl}}` - Unique testimonial submission URL
+
+#### Email Templates
+- **Subject**: Customizable email subject line
+- **Content**: Rich text email body with HTML support
+- **Default**: Professional template requesting testimonials
+
+#### SMS Templates
+- **Message**: Text message content (160 character limit recommended)
+- **Default**: Concise message with testimonial link
+- **Note**: SMS functionality requires Twilio configuration
 
 ### Embed Widgets
 Testimonials can be embedded on external websites with customization options:
@@ -301,6 +322,14 @@ Ensure the following environment variables are set in production:
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Secure session secret
 - `NODE_ENV=production`
+
+#### Optional SMS Configuration
+For SMS testimonial requests, also configure:
+- `TWILIO_ACCOUNT_SID` - Your Twilio Account SID
+- `TWILIO_AUTH_TOKEN` - Your Twilio Auth Token
+- `TWILIO_PHONE_NUMBER` - Your Twilio phone number (E.164 format)
+
+**Note**: If Twilio credentials are not provided, only email testimonial requests will be available.
 
 ## 🤝 Contributing
 
