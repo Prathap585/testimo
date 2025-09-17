@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Project, Client, Testimonial } from "@shared/schema";
 import ClientsList from "@/components/clients-list";
 import TestimonialsList from "@/components/testimonials-list";
+import Navigation from "@/components/navigation";
+import Footer from "@/components/footer";
 
 export default function ProjectDetails() {
   const { id } = useParams();
@@ -61,23 +63,35 @@ export default function ProjectDetails() {
 
   if (projectLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 bg-muted rounded animate-pulse"></div>
-        <div className="h-64 bg-muted rounded animate-pulse"></div>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="space-y-6">
+            <div className="h-8 bg-muted rounded animate-pulse"></div>
+            <div className="h-64 bg-muted rounded animate-pulse"></div>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   if (!project) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-4">Project not found</h2>
-        <Link href="/">
-          <Button>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </Link>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">Project not found</h2>
+            <Link href="/">
+              <Button>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -86,134 +100,145 @@ export default function ProjectDetails() {
   const clientCount = clients?.length || 0;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/">
-            <Button variant="ghost" size="sm" data-testid="back-to-dashboard">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground" data-testid="project-title">
-              {project.name}
-            </h1>
-            {project.description && (
-              <p className="text-muted-foreground mt-1" data-testid="project-description">
-                {project.description}
-              </p>
-            )}
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex flex-col space-y-6 lg:flex-row lg:items-start lg:justify-between lg:space-y-0">
+            <div className="flex flex-col space-y-4">
+              <Link href="/">
+                <Button variant="ghost" size="sm" data-testid="back-to-dashboard">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-4xl font-bold text-foreground mb-2" data-testid="project-title">
+                  {project.name}
+                </h1>
+                {project.description && (
+                  <p className="text-xl text-muted-foreground" data-testid="project-description">
+                    {project.description}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Badge 
+              variant={project.isActive ? "default" : "secondary"}
+              className="text-sm px-3 py-1"
+              data-testid="project-status"
+            >
+              {project.isActive ? "Active" : "Inactive"}
+            </Badge>
           </div>
+
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="stat-total-clients">{clientCount}</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Testimonials</CardTitle>
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold" data-testid="stat-total-testimonials">{stats.total}</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Published</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600" data-testid="stat-published-testimonials">{stats.published}</div>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600" data-testid="stat-pending-testimonials">{stats.pending}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions */}
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-3">
+              <Button onClick={copyFormUrl} data-testid="button-copy-form-url">
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Form URL
+              </Button>
+              <Link href={`/submit/${id}`}>
+                <Button variant="outline" data-testid="button-preview-form">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Preview Form
+                </Button>
+              </Link>
+              <Button variant="outline" disabled data-testid="button-email-settings">
+                <Settings className="w-4 h-4 mr-2" />
+                Email Settings (Coming Soon)
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Main Content Tabs */}
+          <Tabs defaultValue="clients" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3" data-testid="project-tabs">
+              <TabsTrigger value="clients" data-testid="tab-clients">
+                Clients ({clientCount})
+              </TabsTrigger>
+              <TabsTrigger value="testimonials" data-testid="tab-testimonials">
+                Testimonials ({stats.total})
+              </TabsTrigger>
+              <TabsTrigger value="settings" data-testid="tab-settings">
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="clients" className="space-y-6">
+              <ClientsList projectId={id} />
+            </TabsContent>
+
+            <TabsContent value="testimonials" className="space-y-6">
+              <TestimonialsList projectId={id} />
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-6">
+              <Card>
+                <CardContent className="text-center py-12">
+                  <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">Project Settings</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Configure form branding, email automation, and other project settings.
+                  </p>
+                  <p className="text-sm text-muted-foreground">Coming soon!</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-        <Badge 
-          variant={project.isActive ? "default" : "secondary"}
-          data-testid="project-status"
-        >
-          {project.isActive ? "Active" : "Inactive"}
-        </Badge>
       </div>
-
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-total-clients">{clientCount}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Testimonials</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="stat-total-testimonials">{stats.total}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Published</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600" data-testid="stat-published-testimonials">{stats.published}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600" data-testid="stat-pending-testimonials">{stats.pending}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button onClick={copyFormUrl} data-testid="button-copy-form-url">
-            <Copy className="w-4 h-4 mr-2" />
-            Copy Form URL
-          </Button>
-          <Link href={`/submit/${id}`}>
-            <Button variant="outline" data-testid="button-preview-form">
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Preview Form
-            </Button>
-          </Link>
-          <Button variant="outline" disabled data-testid="button-email-settings">
-            <Settings className="w-4 h-4 mr-2" />
-            Email Settings (Coming Soon)
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="clients" className="space-y-6">
-        <TabsList data-testid="project-tabs">
-          <TabsTrigger value="clients" data-testid="tab-clients">
-            Clients ({clientCount})
-          </TabsTrigger>
-          <TabsTrigger value="testimonials" data-testid="tab-testimonials">
-            Testimonials ({stats.total})
-          </TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">
-            Settings
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="clients" className="space-y-6">
-          <ClientsList projectId={id} />
-        </TabsContent>
-
-        <TabsContent value="testimonials" className="space-y-6">
-          <TestimonialsList projectId={id} />
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
-          <div className="text-center py-12">
-            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Project Settings</h3>
-            <p className="text-muted-foreground mb-6">
-              Configure form branding, email automation, and other project settings.
-            </p>
-            <p className="text-sm text-muted-foreground">Coming soon!</p>
-          </div>
-        </TabsContent>
-      </Tabs>
+      
+      <Footer />
     </div>
   );
 }
