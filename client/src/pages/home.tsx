@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import type { Project, Client, Testimonial } from "@shared/schema";
 export default function Home() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  const hasShownWelcome = useRef(false);
 
   // Fetch projects data for dashboard stats
   const { data: projects } = useQuery<Project[]>({
@@ -36,11 +37,21 @@ export default function Home() {
   const responseRate = totalClients > 0 ? Math.round((totalTestimonials / totalClients) * 100) : 0;
 
   useEffect(() => {
-    if (!isLoading && user) {
-      toast({
-        title: "Welcome to Testimo!",
-        description: "You're successfully logged in. Start collecting testimonials.",
-      });
+    // Only show welcome toast once per session when user first logs in
+    if (!isLoading && user && !hasShownWelcome.current) {
+      // Check if we've already shown the welcome message in this session
+      const welcomeShown = sessionStorage.getItem('testimo_welcome_shown');
+      
+      if (!welcomeShown) {
+        toast({
+          title: "Welcome to Testimo!",
+          description: "You're successfully logged in. Start collecting testimonials.",
+        });
+        
+        // Mark as shown for this session
+        hasShownWelcome.current = true;
+        sessionStorage.setItem('testimo_welcome_shown', 'true');
+      }
     }
   }, [user, isLoading, toast]);
 
