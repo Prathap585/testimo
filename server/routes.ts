@@ -1,0 +1,166 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { insertContactSubmissionSchema } from "@shared/schema";
+import { z } from "zod";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  await setupAuth(app);
+
+  // Auth routes
+  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Contact form submission (public route)
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const validatedData = insertContactSubmissionSchema.parse(req.body);
+      const submission = await storage.createContactSubmission(validatedData);
+      res.status(201).json(submission);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid data", errors: error.errors });
+      } else {
+        console.error("Error creating contact submission:", error);
+        res.status(500).json({ message: "Failed to submit contact form" });
+      }
+    }
+  });
+
+  // Public testimonials for wall display
+  app.get("/api/testimonials/public", async (req, res) => {
+    try {
+      const testimonials = await storage.getPublishedTestimonials();
+      res.json(testimonials);
+    } catch (error) {
+      console.error("Error fetching public testimonials:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
+  // Protected routes - Projects
+  app.get("/api/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projects = await storage.getProjectsByUserId(userId);
+      res.json(projects);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.post("/api/projects", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const projectData = { ...req.body, userId };
+      const project = await storage.createProject(projectData);
+      res.status(201).json(project);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      res.status(500).json({ message: "Failed to create project" });
+    }
+  });
+
+  app.get("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      // Ensure user owns this project
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      res.json(project);
+    } catch (error) {
+      console.error("Error fetching project:", error);
+      res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+
+  // Protected routes - Clients
+  app.get("/api/projects/:projectId/clients", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const clients = await storage.getClientsByProjectId(req.params.projectId);
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ message: "Failed to fetch clients" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/clients", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const clientData = { ...req.body, projectId: req.params.projectId };
+      const client = await storage.createClient(clientData);
+      res.status(201).json(client);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      res.status(500).json({ message: "Failed to create client" });
+    }
+  });
+
+  // Protected routes - Testimonials
+  app.get("/api/projects/:projectId/testimonials", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const testimonials = await storage.getTestimonialsByProjectId(req.params.projectId);
+      res.json(testimonials);
+    } catch (error) {
+      console.error("Error fetching testimonials:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
+  app.patch("/api/testimonials/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const testimonial = await storage.getTestimonial(req.params.id);
+      if (!testimonial) {
+        return res.status(404).json({ message: "Testimonial not found" });
+      }
+      
+      // Verify project ownership
+      const project = await storage.getProject(testimonial.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedTestimonial = await storage.updateTestimonial(req.params.id, req.body);
+      res.json(updatedTestimonial);
+    } catch (error) {
+      console.error("Error updating testimonial:", error);
+      res.status(500).json({ message: "Failed to update testimonial" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
