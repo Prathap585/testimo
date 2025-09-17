@@ -89,6 +89,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      // Ensure user owns this project
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedProject = await storage.updateProject(req.params.id, req.body);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      res.status(500).json({ message: "Failed to update project" });
+    }
+  });
+
+  app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      // Ensure user owns this project
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteProject(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+
   // Protected routes - Clients
   app.get("/api/projects/:projectId/clients", isAuthenticated, async (req: any, res) => {
     try {
@@ -123,6 +161,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/clients/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const client = await storage.getClient(req.params.id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Verify project ownership
+      const project = await storage.getProject(client.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const updatedClient = await storage.updateClient(req.params.id, req.body);
+      res.json(updatedClient);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      res.status(500).json({ message: "Failed to update client" });
+    }
+  });
+
+  app.delete("/api/clients/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const client = await storage.getClient(req.params.id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Verify project ownership
+      const project = await storage.getProject(client.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteClient(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      res.status(500).json({ message: "Failed to delete client" });
+    }
+  });
+
   // Protected routes - Testimonials
   app.get("/api/projects/:projectId/testimonials", isAuthenticated, async (req: any, res) => {
     try {
@@ -137,6 +217,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching testimonials:", error);
       res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/testimonials", async (req, res) => {
+    try {
+      // Public route - clients can submit testimonials
+      const testimonialData = { ...req.body, projectId: req.params.projectId };
+      const testimonial = await storage.createTestimonial(testimonialData);
+      res.status(201).json(testimonial);
+    } catch (error) {
+      console.error("Error creating testimonial:", error);
+      res.status(500).json({ message: "Failed to create testimonial" });
     }
   });
 
@@ -158,6 +250,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating testimonial:", error);
       res.status(500).json({ message: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/testimonials/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const testimonial = await storage.getTestimonial(req.params.id);
+      if (!testimonial) {
+        return res.status(404).json({ message: "Testimonial not found" });
+      }
+      
+      // Verify project ownership
+      const project = await storage.getProject(testimonial.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      await storage.deleteTestimonial(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting testimonial:", error);
+      res.status(500).json({ message: "Failed to delete testimonial" });
     }
   });
 
