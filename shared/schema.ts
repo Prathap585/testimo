@@ -42,6 +42,7 @@ export const projects = pgTable("projects", {
   name: varchar("name").notNull(),
   description: text("description"),
   isActive: boolean("is_active").default(true),
+  emailSettings: jsonb("email_settings").default(sql`'{"fromName": "", "subject": "Please share your testimonial for {{projectName}}", "message": "Hi {{clientName}},\\n\\nI hope this message finds you well!\\n\\nI would greatly appreciate if you could take a few minutes to share your experience working with me on {{projectName}}. Your testimonial would mean a lot and help showcase the value of my work to future clients.\\n\\nYou can submit your testimonial using this link: {{testimonialUrl}}\\n\\nThank you so much for your time and support!\\n\\nBest regards"}'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

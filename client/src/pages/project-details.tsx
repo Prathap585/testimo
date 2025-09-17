@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Project, Client, Testimonial } from "@shared/schema";
 import ClientsList from "@/components/clients-list";
 import TestimonialsList from "@/components/testimonials-list";
+import EmailSettingsForm from "@/components/email-settings-form";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 
@@ -193,9 +194,13 @@ export default function ProjectDetails() {
                   Preview Form
                 </Button>
               </Link>
-              <Button variant="outline" disabled data-testid="button-email-settings">
+              <Button variant="outline" onClick={() => {
+                // Find and click the settings tab
+                const settingsTab = document.querySelector('[data-testid="tab-settings"]') as HTMLElement;
+                settingsTab?.click();
+              }} data-testid="button-email-settings">
                 <Settings className="w-4 h-4 mr-2" />
-                Email Settings (Coming Soon)
+                Email Settings
               </Button>
             </CardContent>
           </Card>
@@ -223,16 +228,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">Project Settings</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Configure form branding, email automation, and other project settings.
-                  </p>
-                  <p className="text-sm text-muted-foreground">Coming soon!</p>
-                </CardContent>
-              </Card>
+              <EmailSettingsForm project={project} />
             </TabsContent>
           </Tabs>
         </div>

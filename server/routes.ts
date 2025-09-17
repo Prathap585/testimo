@@ -108,6 +108,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update project email settings
+  app.patch("/api/projects/:id/email-settings", isAuthenticated, async (req: any, res) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      // Ensure user owns this project
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { emailSettings } = req.body;
+      const updatedProject = await storage.updateProject(req.params.id, { emailSettings });
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error updating email settings:", error);
+      res.status(500).json({ message: "Failed to update email settings" });
+    }
+  });
+
   app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
     try {
       const project = await storage.getProject(req.params.id);
