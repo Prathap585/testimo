@@ -12,6 +12,7 @@ import About from "@/pages/about";
 import ProjectDetails from "@/pages/project-details";
 import SubmitTestimonial from "@/pages/submit-testimonial";
 import Testimonials from "@/pages/testimonials";
+import Embed from "@/pages/embed";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/" component={Landing} />
           <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/testimonials" component={Testimonials} />
+          <Route path="/embed/:projectId" component={Embed} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />
@@ -34,6 +36,7 @@ function Router() {
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/testimonials" component={Testimonials} />
+          <Route path="/embed/:projectId" component={Embed} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />

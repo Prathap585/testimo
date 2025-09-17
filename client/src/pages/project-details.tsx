@@ -20,6 +20,7 @@ import type { Project, Client, Testimonial } from "@shared/schema";
 import ClientsList from "@/components/clients-list";
 import TestimonialsList from "@/components/testimonials-list";
 import EmailSettingsForm from "@/components/email-settings-form";
+import EmbedCodeGenerator from "@/components/embed-code-generator";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 
@@ -229,6 +230,7 @@ export default function ProjectDetails() {
 
             <TabsContent value="settings" className="space-y-6">
               <EmailSettingsForm project={project} />
+              <EmbedCodeGenerator project={project} />
             </TabsContent>
           </Tabs>
         </div>

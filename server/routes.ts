@@ -48,6 +48,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get published testimonials for a specific project (embeddable)
+  app.get("/api/projects/:projectId/testimonials/embed", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { limit = "10", theme = "light", layout = "grid" } = req.query;
+
+      console.log(`Embed API called for project ${projectId} with query params:`, { theme, layout, limit });
+
+      // Verify project exists and is active
+      const project = await storage.getProject(projectId);
+      if (!project || !project.isActive) {
+        return res.status(404).json({ message: "Project not found or inactive" });
+      }
+
+      const testimonials = await storage.getPublishedTestimonialsByProjectId(projectId);
+      
+      // Limit the number of testimonials
+      const limitedTestimonials = testimonials.slice(0, parseInt(limit as string, 10));
+
+      const response = {
+        project: {
+          id: project.id,
+          name: project.name,
+          description: project.description
+        },
+        testimonials: limitedTestimonials,
+        settings: {
+          theme: theme as string,
+          layout: layout as string,
+          limit: parseInt(limit as string, 10)
+        }
+      };
+
+      console.log(`Embed API response settings:`, response.settings);
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching embeddable testimonials:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
   // Protected routes - Projects
   app.get("/api/projects", isAuthenticated, async (req: any, res) => {
     try {
