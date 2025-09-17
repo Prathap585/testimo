@@ -297,6 +297,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send testimonial request email
+  app.post("/api/clients/:id/send-testimonial-request", isAuthenticated, async (req: any, res) => {
+    try {
+      const client = await storage.getClient(req.params.id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      const project = await storage.getProject(client.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Verify project ownership
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // For now, we'll mark the client as contacted and simulate sending the email
+      // In a real implementation, this would integrate with an email service like SendGrid, Mailgun, etc.
+      await storage.updateClient(client.id, { isContacted: true });
+
+      // TODO: Replace with actual email sending functionality
+      // const emailResult = await sendTestimonialRequestEmail({
+      //   to: client.email,
+      //   clientName: client.name,
+      //   projectName: project.name,
+      //   testimonialUrl: `${req.protocol}://${req.get('host')}/submit/${project.id}`
+      // });
+
+      console.log(`Simulated sending testimonial request email to ${client.email} for project ${project.name}`);
+
+      res.json({ 
+        message: "Testimonial request sent successfully",
+        client: await storage.getClient(client.id)
+      });
+    } catch (error) {
+      console.error("Error sending testimonial request:", error);
+      res.status(500).json({ message: "Failed to send testimonial request" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

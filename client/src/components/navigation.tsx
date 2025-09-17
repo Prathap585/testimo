@@ -53,6 +53,7 @@ export default function Navigation() {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <NavLink href="/">Home</NavLink>
+              <NavLink href="/testimonials">Testimonials</NavLink>
               <NavLink href="/pricing">Pricing</NavLink>
               <NavLink href="/how-it-works">How It Works</NavLink>
               <NavLink href="/about">About</NavLink>
@@ -100,6 +101,7 @@ export default function Navigation() {
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-8">
                   <NavLink href="/" onClick={closeMobileMenu}>Home</NavLink>
+                  <NavLink href="/testimonials" onClick={closeMobileMenu}>Testimonials</NavLink>
                   <NavLink href="/pricing" onClick={closeMobileMenu}>Pricing</NavLink>
                   <NavLink href="/how-it-works" onClick={closeMobileMenu}>How It Works</NavLink>
                   <NavLink href="/about" onClick={closeMobileMenu}>About</NavLink>

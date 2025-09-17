@@ -7,7 +7,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, Building } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, Building, CheckCircle, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,12 +59,29 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     }
   };
 
+  const sendTestimonialRequestMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      return await apiRequest("POST", `/api/clients/${clientId}/send-testimonial-request`, {});
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Testimonial request sent!",
+        description: "The testimonial request has been sent to your client's email.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send testimonial request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSendTestimonialRequest = (client: Client) => {
-    // TODO: Implement send testimonial request functionality
-    toast({
-      title: "Coming Soon",
-      description: "Testimonial request functionality will be available soon!",
-    });
+    sendTestimonialRequestMutation.mutate(client.id);
   };
 
   const closeEditModal = () => {
@@ -163,9 +180,10 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handleSendTestimonialRequest(client)}
+                    disabled={client.isContacted || sendTestimonialRequestMutation.isPending}
                     data-testid={`send-request-${client.id}`}
                   >
-                    Send Request
+                    {client.isContacted ? "Request Sent" : "Send Request"}
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="text-destructive"
@@ -190,16 +208,38 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                 </div>
               )}
 
+              {client.isContacted && (
+                <div className="flex items-center text-sm text-green-600 dark:text-green-400">
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <span data-testid={`client-contacted-${client.id}`}>Request sent</span>
+                </div>
+              )}
+
               <div className="pt-2">
                 <Button
-                  variant="outline"
+                  variant={client.isContacted ? "secondary" : "outline"}
                   size="sm"
                   className="w-full"
                   onClick={() => handleSendTestimonialRequest(client)}
+                  disabled={client.isContacted || sendTestimonialRequestMutation.isPending}
                   data-testid={`send-testimonial-request-${client.id}`}
                 >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Request Testimonial
+                  {sendTestimonialRequestMutation.isPending ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : client.isContacted ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Request Sent
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="w-4 h-4 mr-2" />
+                      Request Testimonial
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
