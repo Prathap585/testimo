@@ -20,24 +20,30 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/pricing">
-                  <a className="hover:text-primary transition-colors" data-testid="footer-link-pricing">
-                    Pricing
-                  </a>
+                <Link 
+                  href="/pricing"
+                  className="hover:text-primary transition-colors" 
+                  data-testid="footer-link-pricing"
+                >
+                  Pricing
                 </Link>
               </li>
               <li>
-                <Link href="/how-it-works">
-                  <a className="hover:text-primary transition-colors" data-testid="footer-link-how-it-works">
-                    How it works
-                  </a>
+                <Link 
+                  href="/how-it-works"
+                  className="hover:text-primary transition-colors" 
+                  data-testid="footer-link-how-it-works"
+                >
+                  How it works
                 </Link>
               </li>
               <li>
-                <Link href="/">
-                  <a className="hover:text-primary transition-colors" data-testid="footer-link-features">
-                    Features
-                  </a>
+                <Link 
+                  href="/"
+                  className="hover:text-primary transition-colors" 
+                  data-testid="footer-link-features"
+                >
+                  Features
                 </Link>
               </li>
             </ul>
@@ -49,17 +55,21 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/about">
-                  <a className="hover:text-primary transition-colors" data-testid="footer-link-about">
-                    About
-                  </a>
+                <Link 
+                  href="/about"
+                  className="hover:text-primary transition-colors" 
+                  data-testid="footer-link-about"
+                >
+                  About
                 </Link>
               </li>
               <li>
-                <Link href="/about">
-                  <a className="hover:text-primary transition-colors" data-testid="footer-link-contact">
-                    Contact
-                  </a>
+                <Link 
+                  href="/about"
+                  className="hover:text-primary transition-colors" 
+                  data-testid="footer-link-contact"
+                >
+                  Contact
                 </Link>
               </li>
               <li>
