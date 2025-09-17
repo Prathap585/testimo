@@ -30,6 +30,7 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    phone: "",
     company: "",
   });
 
@@ -38,12 +39,14 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
       setFormData({
         name: client.name,
         email: client.email,
+        phone: client.phone || "",
         company: client.company || "",
       });
     } else {
       setFormData({
         name: "",
         email: "",
+        phone: "",
         company: "",
       });
     }
@@ -96,7 +99,7 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
   });
 
   const resetForm = () => {
-    setFormData({ name: "", email: "", company: "" });
+    setFormData({ name: "", email: "", phone: "", company: "" });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -113,6 +116,7 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
     const clientData = {
       name: formData.name.trim(),
       email: formData.email.trim(),
+      phone: formData.phone.trim() || null,
       company: formData.company.trim() || null,
       projectId,
     };
@@ -177,6 +181,24 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
               placeholder="e.g., john@example.com"
               data-testid="input-client-email"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
+              Phone Number (Optional)
+            </Label>
+            <Input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              placeholder="e.g., +1234567890"
+              data-testid="input-client-phone"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Include country code for SMS requests (e.g., +1 for US numbers)
+            </p>
           </div>
 
           <div>

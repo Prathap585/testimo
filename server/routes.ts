@@ -4,6 +4,49 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertContactSubmissionSchema } from "@shared/schema";
 import { z } from "zod";
+import twilio from "twilio";
+
+// Initialize Twilio client only if credentials are valid
+let twilioClient: any = null;
+if (process.env.TWILIO_ACCOUNT_SID?.startsWith('AC') && 
+    process.env.TWILIO_AUTH_TOKEN && 
+    process.env.TWILIO_PHONE_NUMBER) {
+  try {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+  } catch (error) {
+    console.error('Error initializing Twilio client:', error);
+  }
+} else {
+  console.log('Twilio credentials not properly configured - SMS functionality disabled');
+}
+
+// Template replacement helper
+function replaceTemplateVariables(template: string, variables: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => variables[key] || match);
+}
+
+// SMS sending function
+async function sendSMS(to: string, message: string): Promise<any> {
+  if (!twilioClient) {
+    throw new Error('SMS functionality is not available - Twilio not properly configured');
+  }
+  
+  try {
+    const result = await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: to
+    });
+    console.log(`SMS sent successfully to ${to}, SID: ${result.sid}`);
+    return result;
+  } catch (error) {
+    console.error(`Error sending SMS to ${to}:`, error);
+    throw error;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
@@ -377,27 +420,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // For now, we'll mark the client as contacted and simulate sending the email
-      // In a real implementation, this would integrate with an email service like SendGrid, Mailgun, etc.
+      // Mark the client as contacted
       await storage.updateClient(client.id, { isContacted: true });
 
+      // For now, simulate sending the email
       // TODO: Replace with actual email sending functionality
-      // const emailResult = await sendTestimonialRequestEmail({
-      //   to: client.email,
-      //   clientName: client.name,
-      //   projectName: project.name,
-      //   testimonialUrl: `${req.protocol}://${req.get('host')}/submit/${project.id}`
-      // });
-
       console.log(`Simulated sending testimonial request email to ${client.email} for project ${project.name}`);
 
       res.json({ 
-        message: "Testimonial request sent successfully",
+        message: "Email testimonial request sent successfully",
         client: await storage.getClient(client.id)
       });
     } catch (error) {
       console.error("Error sending testimonial request:", error);
       res.status(500).json({ message: "Failed to send testimonial request" });
+    }
+  });
+
+  // Send testimonial request SMS
+  app.post("/api/clients/:id/send-sms-request", isAuthenticated, async (req: any, res) => {
+    try {
+      const client = await storage.getClient(req.params.id);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      if (!client.phone) {
+        return res.status(400).json({ message: "Client does not have a phone number" });
+      }
+
+      const project = await storage.getProject(client.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Verify project ownership
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get SMS template from project settings
+      const smsSettings = project.smsSettings as { message: string } || 
+        { message: "Hi {{clientName}}! Could you please share a testimonial for {{projectName}}? It would mean a lot to me. Submit here: {{testimonialUrl}}" };
+
+      // Build testimonial URL
+      const testimonialUrl = `${req.protocol}://${req.get('host')}/submit/${project.id}`;
+
+      // Replace template variables
+      const message = replaceTemplateVariables(smsSettings.message, {
+        clientName: client.name,
+        projectName: project.name,
+        testimonialUrl: testimonialUrl
+      });
+
+      // Send SMS using Twilio
+      await sendSMS(client.phone, message);
+
+      // Mark the client as contacted
+      await storage.updateClient(client.id, { isContacted: true });
+
+      res.json({ 
+        message: "SMS testimonial request sent successfully",
+        client: await storage.getClient(client.id)
+      });
+    } catch (error: any) {
+      console.error("Error sending SMS testimonial request:", error);
+      
+      // Return more specific error messages
+      if (error.code === 21211) {
+        res.status(400).json({ message: "Invalid phone number format" });
+      } else if (error.code === 21408) {
+        res.status(400).json({ message: "Permission denied for phone number" });
+      } else {
+        res.status(500).json({ message: "Failed to send SMS testimonial request" });
+      }
     }
   });
 

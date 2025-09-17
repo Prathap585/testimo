@@ -7,7 +7,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, Building, CheckCircle, Clock } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -59,13 +59,13 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     }
   };
 
-  const sendTestimonialRequestMutation = useMutation({
+  const sendEmailRequestMutation = useMutation({
     mutationFn: async (clientId: string) => {
       return await apiRequest("POST", `/api/clients/${clientId}/send-testimonial-request`, {});
     },
     onSuccess: (data) => {
       toast({
-        title: "Testimonial request sent!",
+        title: "Email request sent!",
         description: "The testimonial request has been sent to your client's email.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
@@ -74,14 +74,39 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to send testimonial request. Please try again.",
+        description: "Failed to send email request. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handleSendTestimonialRequest = (client: Client) => {
-    sendTestimonialRequestMutation.mutate(client.id);
+  const sendSmsRequestMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      return await apiRequest("POST", `/api/clients/${clientId}/send-sms-request`, {});
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "SMS request sent!",
+        description: "The testimonial request has been sent to your client's phone.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to send SMS request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendEmailRequest = (client: Client) => {
+    sendEmailRequestMutation.mutate(client.id);
+  };
+
+  const handleSendSmsRequest = (client: Client) => {
+    sendSmsRequestMutation.mutate(client.id);
   };
 
   const closeEditModal = () => {
@@ -179,12 +204,23 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                     Edit Client
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => handleSendTestimonialRequest(client)}
-                    disabled={client.isContacted || sendTestimonialRequestMutation.isPending}
-                    data-testid={`send-request-${client.id}`}
+                    onClick={() => handleSendEmailRequest(client)}
+                    disabled={client.isContacted || sendEmailRequestMutation.isPending}
+                    data-testid={`send-email-request-${client.id}`}
                   >
-                    {client.isContacted ? "Request Sent" : "Send Request"}
+                    <Mail className="w-4 h-4 mr-2" />
+                    {client.isContacted ? "Email Sent" : "Send Email"}
                   </DropdownMenuItem>
+                  {client.phone && (
+                    <DropdownMenuItem 
+                      onClick={() => handleSendSmsRequest(client)}
+                      disabled={client.isContacted || sendSmsRequestMutation.isPending}
+                      data-testid={`send-sms-request-${client.id}`}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      {client.isContacted ? "SMS Sent" : "Send SMS"}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     className="text-destructive"
                     onClick={() => handleDeleteClient(client.id)}
@@ -201,6 +237,13 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                 <span className="truncate" data-testid={`client-email-${client.id}`}>{client.email}</span>
               </div>
               
+              {client.phone && (
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Phone className="w-4 h-4 mr-2" />
+                  <span className="truncate" data-testid={`client-phone-${client.id}`}>{client.phone}</span>
+                </div>
+              )}
+              
               {client.company && (
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Building className="w-4 h-4 mr-2" />
@@ -215,32 +258,55 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                 </div>
               )}
 
-              <div className="pt-2">
+              <div className="pt-2 space-y-2">
                 <Button
                   variant={client.isContacted ? "secondary" : "outline"}
                   size="sm"
                   className="w-full"
-                  onClick={() => handleSendTestimonialRequest(client)}
-                  disabled={client.isContacted || sendTestimonialRequestMutation.isPending}
-                  data-testid={`send-testimonial-request-${client.id}`}
+                  onClick={() => handleSendEmailRequest(client)}
+                  disabled={client.isContacted || sendEmailRequestMutation.isPending}
+                  data-testid={`send-email-request-${client.id}`}
                 >
-                  {sendTestimonialRequestMutation.isPending ? (
+                  {sendEmailRequestMutation.isPending ? (
                     <>
                       <Clock className="w-4 h-4 mr-2 animate-spin" />
-                      Sending...
+                      Sending Email...
                     </>
                   ) : client.isContacted ? (
                     <>
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Request Sent
+                      Email Sent
                     </>
                   ) : (
                     <>
                       <Mail className="w-4 h-4 mr-2" />
-                      Request Testimonial
+                      Email Request
                     </>
                   )}
                 </Button>
+                
+                {client.phone && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleSendSmsRequest(client)}
+                    disabled={client.isContacted || sendSmsRequestMutation.isPending}
+                    data-testid={`send-sms-request-${client.id}`}
+                  >
+                    {sendSmsRequestMutation.isPending ? (
+                      <>
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                        Sending SMS...
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        SMS Request
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
