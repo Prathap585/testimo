@@ -33,6 +33,7 @@ export interface IStorage {
   // Client operations
   createClient(client: InsertClient): Promise<Client>;
   getClientsByProjectId(projectId: string): Promise<Client[]>;
+  getAllClientsByUserId(userId: string): Promise<Client[]>;
   getClient(id: string): Promise<Client | undefined>;
   updateClient(id: string, updates: Partial<InsertClient>): Promise<Client>;
   deleteClient(id: string): Promise<void>;
@@ -40,6 +41,7 @@ export interface IStorage {
   // Testimonial operations
   createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
   getTestimonialsByProjectId(projectId: string): Promise<Testimonial[]>;
+  getAllTestimonialsByUserId(userId: string): Promise<Testimonial[]>;
   getTestimonial(id: string): Promise<Testimonial | undefined>;
   updateTestimonial(id: string, updates: Partial<InsertTestimonial>): Promise<Testimonial>;
   deleteTestimonial(id: string): Promise<void>;
@@ -119,6 +121,25 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(clients.createdAt));
   }
 
+  async getAllClientsByUserId(userId: string): Promise<Client[]> {
+    return await db
+      .select({
+        id: clients.id,
+        name: clients.name,
+        email: clients.email,
+        title: clients.title,
+        company: clients.company,
+        projectId: clients.projectId,
+        isContacted: clients.isContacted,
+        createdAt: clients.createdAt,
+        updatedAt: clients.updatedAt,
+      })
+      .from(clients)
+      .innerJoin(projects, eq(clients.projectId, projects.id))
+      .where(eq(projects.userId, userId))
+      .orderBy(desc(clients.createdAt));
+  }
+
   async getClient(id: string): Promise<Client | undefined> {
     const [client] = await db.select().from(clients).where(eq(clients.id, id));
     return client;
@@ -148,6 +169,30 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(testimonials)
       .where(eq(testimonials.projectId, projectId))
+      .orderBy(desc(testimonials.createdAt));
+  }
+
+  async getAllTestimonialsByUserId(userId: string): Promise<Testimonial[]> {
+    return await db
+      .select({
+        id: testimonials.id,
+        projectId: testimonials.projectId,
+        clientId: testimonials.clientId,
+        clientName: testimonials.clientName,
+        clientEmail: testimonials.clientEmail,
+        clientTitle: testimonials.clientTitle,
+        clientCompany: testimonials.clientCompany,
+        content: testimonials.content,
+        rating: testimonials.rating,
+        isApproved: testimonials.isApproved,
+        isPublished: testimonials.isPublished,
+        videoUrl: testimonials.videoUrl,
+        createdAt: testimonials.createdAt,
+        updatedAt: testimonials.updatedAt,
+      })
+      .from(testimonials)
+      .innerJoin(projects, eq(testimonials.projectId, projects.id))
+      .where(eq(projects.userId, userId))
       .orderBy(desc(testimonials.createdAt));
   }
 

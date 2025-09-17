@@ -127,6 +127,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Global routes for dashboard analytics
+  app.get("/api/clients", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const clients = await storage.getAllClientsByUserId(userId);
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching all clients:", error);
+      res.status(500).json({ message: "Failed to fetch clients" });
+    }
+  });
+
+  app.get("/api/testimonials", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const testimonials = await storage.getAllTestimonialsByUserId(userId);
+      res.json(testimonials);
+    } catch (error) {
+      console.error("Error fetching all testimonials:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
   // Protected routes - Clients
   app.get("/api/projects/:projectId/clients", isAuthenticated, async (req: any, res) => {
     try {

@@ -46,6 +46,7 @@ export default function TestimonialsList({ projectId }: TestimonialsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/testimonials"] });
     },
     onError: () => {
       toast({
@@ -67,6 +68,7 @@ export default function TestimonialsList({ projectId }: TestimonialsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "testimonials"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/testimonials"] });
     },
     onError: () => {
       toast({
@@ -80,14 +82,14 @@ export default function TestimonialsList({ projectId }: TestimonialsListProps) {
   const handleApprove = (testimonialId: string) => {
     updateTestimonialMutation.mutate({
       id: testimonialId,
-      updates: { isPublished: true }
+      updates: { isApproved: true, isPublished: true }
     });
   };
 
   const handleReject = (testimonialId: string) => {
     updateTestimonialMutation.mutate({
       id: testimonialId,
-      updates: { isPublished: false }
+      updates: { isApproved: false, isPublished: false }
     });
   };
 

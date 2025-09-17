@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 import ProjectsList from "@/components/projects-list";
-import type { Project } from "@shared/schema";
+import type { Project, Client, Testimonial } from "@shared/schema";
 
 export default function Home() {
   const { user, isLoading } = useAuth();
@@ -18,6 +18,22 @@ export default function Home() {
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
+
+  // Fetch clients data for dashboard stats
+  const { data: clients } = useQuery<Client[]>({
+    queryKey: ["/api/clients"],
+  });
+
+  // Fetch testimonials data for dashboard stats
+  const { data: testimonials } = useQuery<Testimonial[]>({
+    queryKey: ["/api/testimonials"],
+  });
+
+  // Calculate dashboard metrics
+  const totalClients = clients?.length || 0;
+  const totalTestimonials = testimonials?.length || 0;
+  const approvedTestimonials = testimonials?.filter(t => t.isApproved)?.length || 0;
+  const responseRate = totalClients > 0 ? Math.round((totalTestimonials / totalClients) * 100) : 0;
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -78,8 +94,10 @@ export default function Home() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No clients added yet</p>
+              <div className="text-2xl font-bold">{totalClients}</div>
+              <p className="text-xs text-muted-foreground">
+                {totalClients === 0 ? "No clients added yet" : `${totalClients} client${totalClients === 1 ? '' : 's'} added`}
+              </p>
             </CardContent>
           </Card>
           
@@ -89,8 +107,10 @@ export default function Home() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No testimonials collected</p>
+              <div className="text-2xl font-bold">{totalTestimonials}</div>
+              <p className="text-xs text-muted-foreground">
+                {totalTestimonials === 0 ? "No testimonials collected" : `${approvedTestimonials} approved, ${totalTestimonials - approvedTestimonials} pending`}
+              </p>
             </CardContent>
           </Card>
           
@@ -100,8 +120,12 @@ export default function Home() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground">Add clients to track rate</p>
+              <div className="text-2xl font-bold">
+                {totalClients > 0 ? `${responseRate}%` : '--'}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {totalClients === 0 ? "Add clients to track rate" : `${totalTestimonials}/${totalClients} responses`}
+              </p>
             </CardContent>
           </Card>
         </div>
