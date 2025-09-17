@@ -62,7 +62,12 @@ export const clients = pgTable("clients", {
 export const testimonials = pgTable("testimonials", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   projectId: varchar("project_id").notNull().references(() => projects.id),
-  clientId: varchar("client_id").notNull().references(() => clients.id),
+  clientId: varchar("client_id").references(() => clients.id), // Optional - for existing clients
+  // Client information stored directly for public submissions
+  clientName: varchar("client_name").notNull(),
+  clientEmail: varchar("client_email").notNull(),
+  clientTitle: varchar("client_title"),
+  clientCompany: varchar("client_company"),
   content: text("content").notNull(),
   rating: integer("rating").notNull(), // 1-5 stars
   isApproved: boolean("is_approved").default(false),

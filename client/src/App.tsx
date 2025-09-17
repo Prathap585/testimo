@@ -9,6 +9,8 @@ import Home from "@/pages/home";
 import Pricing from "@/pages/pricing";
 import HowItWorks from "@/pages/how-it-works";
 import About from "@/pages/about";
+import ProjectDetails from "@/pages/project-details";
+import SubmitTestimonial from "@/pages/submit-testimonial";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -19,6 +21,7 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />
@@ -26,6 +29,8 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
+          <Route path="/projects/:id" component={ProjectDetails} />
+          <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />

@@ -1,0 +1,219 @@
+import { useParams, Link } from "wouter";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { 
+  ArrowLeft, 
+  Users, 
+  MessageSquare, 
+  Settings,
+  ExternalLink,
+  Copy,
+  CheckCircle,
+  Clock
+} from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import type { Project, Client, Testimonial } from "@shared/schema";
+import ClientsList from "@/components/clients-list";
+import TestimonialsList from "@/components/testimonials-list";
+
+export default function ProjectDetails() {
+  const { id } = useParams();
+  const { toast } = useToast();
+  
+  if (!id) {
+    return <div>Project not found</div>;
+  }
+
+  const { data: project, isLoading: projectLoading } = useQuery<Project>({
+    queryKey: ["/api/projects", id],
+  });
+
+  const { data: clients } = useQuery<Client[]>({
+    queryKey: ["/api/projects", id, "clients"],
+  });
+
+  const { data: testimonials } = useQuery<Testimonial[]>({
+    queryKey: ["/api/projects", id, "testimonials"],
+  });
+
+  const copyFormUrl = () => {
+    const url = `${window.location.origin}/submit/${id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Copied!",
+      description: "Testimonial form URL copied to clipboard",
+    });
+  };
+
+  const getTestimonialStats = () => {
+    if (!testimonials) return { published: 0, pending: 0, total: 0 };
+    
+    const published = testimonials.filter(t => t.isPublished).length;
+    const pending = testimonials.filter(t => !t.isPublished).length;
+    const total = testimonials.length;
+    
+    return { published, pending, total };
+  };
+
+  if (projectLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 bg-muted rounded animate-pulse"></div>
+        <div className="h-64 bg-muted rounded animate-pulse"></div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-2xl font-bold mb-4">Project not found</h2>
+        <Link href="/">
+          <Button>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const stats = getTestimonialStats();
+  const clientCount = clients?.length || 0;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Link href="/">
+            <Button variant="ghost" size="sm" data-testid="back-to-dashboard">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground" data-testid="project-title">
+              {project.name}
+            </h1>
+            {project.description && (
+              <p className="text-muted-foreground mt-1" data-testid="project-description">
+                {project.description}
+              </p>
+            )}
+          </div>
+        </div>
+        <Badge 
+          variant={project.isActive ? "default" : "secondary"}
+          data-testid="project-status"
+        >
+          {project.isActive ? "Active" : "Inactive"}
+        </Badge>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="stat-total-clients">{clientCount}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Testimonials</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold" data-testid="stat-total-testimonials">{stats.total}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Published</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600" data-testid="stat-published-testimonials">{stats.published}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600" data-testid="stat-pending-testimonials">{stats.pending}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button onClick={copyFormUrl} data-testid="button-copy-form-url">
+            <Copy className="w-4 h-4 mr-2" />
+            Copy Form URL
+          </Button>
+          <Link href={`/submit/${id}`}>
+            <Button variant="outline" data-testid="button-preview-form">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Preview Form
+            </Button>
+          </Link>
+          <Button variant="outline" disabled data-testid="button-email-settings">
+            <Settings className="w-4 h-4 mr-2" />
+            Email Settings (Coming Soon)
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="clients" className="space-y-6">
+        <TabsList data-testid="project-tabs">
+          <TabsTrigger value="clients" data-testid="tab-clients">
+            Clients ({clientCount})
+          </TabsTrigger>
+          <TabsTrigger value="testimonials" data-testid="tab-testimonials">
+            Testimonials ({stats.total})
+          </TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-settings">
+            Settings
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="clients" className="space-y-6">
+          <ClientsList projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="testimonials" className="space-y-6">
+          <TestimonialsList projectId={id} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="text-center py-12">
+            <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">Project Settings</h3>
+            <p className="text-muted-foreground mb-6">
+              Configure form branding, email automation, and other project settings.
+            </p>
+            <p className="text-sm text-muted-foreground">Coming soon!</p>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
