@@ -45,7 +45,7 @@ export interface IStorage {
   getTestimonial(id: string): Promise<Testimonial | undefined>;
   updateTestimonial(id: string, updates: Partial<InsertTestimonial>): Promise<Testimonial>;
   deleteTestimonial(id: string): Promise<void>;
-  getPublishedTestimonials(): Promise<Testimonial[]>;
+  getPublishedTestimonials(): Promise<Partial<Testimonial>[]>;
   
   // Contact form operations
   createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission>;
@@ -214,9 +214,18 @@ export class DatabaseStorage implements IStorage {
     await db.delete(testimonials).where(eq(testimonials.id, id));
   }
 
-  async getPublishedTestimonials(): Promise<Testimonial[]> {
+  async getPublishedTestimonials(): Promise<Partial<Testimonial>[]> {
     return await db
-      .select()
+      .select({
+        id: testimonials.id,
+        clientName: testimonials.clientName,
+        clientTitle: testimonials.clientTitle,
+        clientCompany: testimonials.clientCompany,
+        content: testimonials.content,
+        rating: testimonials.rating,
+        videoUrl: testimonials.videoUrl,
+        createdAt: testimonials.createdAt,
+      })
       .from(testimonials)
       .where(and(eq(testimonials.isApproved, true), eq(testimonials.isPublished, true)))
       .orderBy(desc(testimonials.createdAt));
