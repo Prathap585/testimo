@@ -123,7 +123,6 @@ export const testimonialsRelations = relations(testimonials, ({ one }) => ({
 
 // Zod schemas
 export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
   createdAt: true,
   updatedAt: true,
 });
