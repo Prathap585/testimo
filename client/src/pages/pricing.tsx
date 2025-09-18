@@ -20,10 +20,13 @@ export default function Pricing() {
 
   const createCheckoutMutation = useMutation({
     mutationFn: async (plan: string) => {
-      return await apiRequest("POST", "/api/subscription/create-checkout", { plan });
+      const response = await apiRequest("POST", "/api/subscription/create-checkout", { plan });
+      return await response.json();
     },
     onSuccess: (data: any) => {
-      window.location.href = data.url;
+      if (data.url) {
+        window.location.href = data.url;
+      }
     },
     onError: (error: any) => {
       toast({

@@ -100,7 +100,7 @@ export const contactSubmissions = pgTable("contact_submissions", {
 // Usage tracking table
 export const usageMetrics = pgTable("usage_metrics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
   projectsCount: integer("projects_count").default(0),
   testimonialsCount: integer("testimonials_count").default(0),
   currentPeriodStart: timestamp("current_period_start").defaultNow(),
