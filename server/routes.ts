@@ -578,6 +578,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
           plan,
         },
+        automatic_tax: {
+          enabled: false,
+        },
+        customer_update: {
+          address: 'auto',
+        },
       });
 
       res.json({ url: session.url });
