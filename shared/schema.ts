@@ -31,6 +31,12 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Subscription fields
+  subscriptionPlan: varchar("subscription_plan").default("free"), // free, pro, agency
+  subscriptionStatus: varchar("subscription_status").default("active"), // active, past_due, canceled
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  currentPeriodEnd: timestamp("current_period_end"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -91,9 +97,21 @@ export const contactSubmissions = pgTable("contact_submissions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Usage tracking table
+export const usageMetrics = pgTable("usage_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  projectsCount: integer("projects_count").default(0),
+  testimonialsCount: integer("testimonials_count").default(0),
+  currentPeriodStart: timestamp("current_period_start").defaultNow(),
+  currentPeriodEnd: timestamp("current_period_end").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   projects: many(projects),
+  usageMetrics: many(usageMetrics),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -121,6 +139,13 @@ export const testimonialsRelations = relations(testimonials, ({ one }) => ({
   client: one(clients, {
     fields: [testimonials.clientId],
     references: [clients.id],
+  }),
+}));
+
+export const usageMetricsRelations = relations(usageMetrics, ({ one }) => ({
+  user: one(users, {
+    fields: [usageMetrics.userId],
+    references: [users.id],
   }),
 }));
 
@@ -164,3 +189,28 @@ export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 export type Testimonial = typeof testimonials.$inferSelect;
 export type InsertContactSubmission = z.infer<typeof insertContactSubmissionSchema>;
 export type ContactSubmission = typeof contactSubmissions.$inferSelect;
+
+export const insertUsageMetricsSchema = createInsertSchema(usageMetrics).omit({
+  id: true,
+  updatedAt: true,
+});
+export type UsageMetrics = typeof usageMetrics.$inferSelect;
+export type InsertUsageMetrics = z.infer<typeof insertUsageMetricsSchema>;
+
+// Subscription plan limits
+export const subscriptionLimits = {
+  free: {
+    projects: 1,
+    testimonials: 3,
+  },
+  pro: {
+    projects: 5,
+    testimonials: Infinity,
+  },
+  agency: {
+    projects: 20,
+    testimonials: Infinity,
+  },
+} as const;
+
+export type SubscriptionPlan = keyof typeof subscriptionLimits;

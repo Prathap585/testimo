@@ -2,9 +2,16 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertContactSubmissionSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan } from "@shared/schema";
 import { z } from "zod";
 import twilio from "twilio";
+import Stripe from "stripe";
+
+// Initialize Stripe
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Initialize Twilio client only if credentials are valid
 let twilioClient: any = null;
@@ -494,6 +501,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "Failed to send SMS testimonial request" });
       }
+    }
+  });
+
+  // Subscription management routes
+  app.post("/api/subscription/create-checkout", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { plan } = req.body;
+      
+      if (!['pro', 'agency'].includes(plan)) {
+        return res.status(400).json({ message: "Invalid subscription plan" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Create or get Stripe customer
+      let stripeCustomerId = user.stripeCustomerId;
+      if (!stripeCustomerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        });
+        stripeCustomerId = customer.id;
+        await storage.updateUserStripeInfo(userId, { stripeCustomerId });
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: plan === 'pro' ? 'Testimo Pro' : 'Testimo Agency',
+                description: plan === 'pro' ? 'For growing businesses' : 'For agencies & teams',
+              },
+              unit_amount: plan === 'pro' ? 1900 : 4900, // $19 or $49 in cents
+              recurring: {
+                interval: 'month',
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${req.headers.origin}/?subscription=success`,
+        cancel_url: `${req.headers.origin}/pricing?canceled=true`,
+        metadata: {
+          userId,
+          plan,
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/subscription/cancel", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.stripeSubscriptionId) {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+
+      await stripe.subscriptions.update(user.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+      });
+
+      res.json({ message: "Subscription will be canceled at the end of the current period" });
+    } catch (error: any) {
+      console.error("Error canceling subscription:", error);
+      res.status(500).json({ message: "Failed to cancel subscription" });
+    }
+  });
+
+  app.get("/api/subscription/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      const usage = await storage.getUserUsage(userId);
+      
+      const limits = subscriptionLimits[user?.subscriptionPlan as SubscriptionPlan || 'free'];
+      
+      res.json({
+        plan: user?.subscriptionPlan || 'free',
+        status: user?.subscriptionStatus || 'active',
+        currentPeriodEnd: user?.currentPeriodEnd,
+        usage: {
+          projects: usage?.projectsCount || 0,
+          testimonials: usage?.testimonialsCount || 0,
+        },
+        limits,
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ message: "Failed to fetch subscription status" });
     }
   });
 

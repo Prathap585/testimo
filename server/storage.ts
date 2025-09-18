@@ -4,6 +4,7 @@ import {
   clients,
   testimonials,
   contactSubmissions,
+  usageMetrics,
   type User,
   type UpsertUser,
   type Project,
@@ -14,6 +15,8 @@ import {
   type InsertTestimonial,
   type ContactSubmission,
   type InsertContactSubmission,
+  type UsageMetrics,
+  type SubscriptionPlan,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -52,6 +55,18 @@ export interface IStorage {
   createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission>;
   getContactSubmissions(): Promise<ContactSubmission[]>;
   markContactSubmissionAsRead(id: string): Promise<void>;
+  
+  // Subscription operations
+  updateUserStripeInfo(userId: string, stripeInfo: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User>;
+  updateUserSubscription(userId: string, subscriptionData: {
+    subscriptionPlan?: SubscriptionPlan;
+    subscriptionStatus?: string;
+    stripeSubscriptionId?: string | null;
+    currentPeriodEnd?: Date | null;
+  }): Promise<User>;
+  getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
+  getUserUsage(userId: string): Promise<UsageMetrics | undefined>;
+  updateUserUsage(userId: string, usage: { projectsCount?: number; testimonialsCount?: number }): Promise<UsageMetrics>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -270,6 +285,78 @@ export class DatabaseStorage implements IStorage {
       .update(contactSubmissions)
       .set({ isRead: true })
       .where(eq(contactSubmissions.id, id));
+  }
+
+  // Subscription operations
+  async updateUserStripeInfo(userId: string, stripeInfo: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...stripeInfo, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserSubscription(userId: string, subscriptionData: {
+    subscriptionPlan?: SubscriptionPlan;
+    subscriptionStatus?: string;
+    stripeSubscriptionId?: string | null;
+    currentPeriodEnd?: Date | null;
+  }): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ ...subscriptionData, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.stripeCustomerId, stripeCustomerId));
+    return user;
+  }
+
+  async getUserUsage(userId: string): Promise<UsageMetrics | undefined> {
+    const [usage] = await db
+      .select()
+      .from(usageMetrics)
+      .where(eq(usageMetrics.userId, userId));
+    
+    if (!usage) {
+      // Create initial usage record
+      const projectsCount = await db.select().from(projects).where(eq(projects.userId, userId));
+      const testimonialsCount = await db.select().from(testimonials)
+        .innerJoin(projects, eq(testimonials.projectId, projects.id))
+        .where(eq(projects.userId, userId));
+      
+      return await this.updateUserUsage(userId, {
+        projectsCount: projectsCount.length,
+        testimonialsCount: testimonialsCount.length,
+      });
+    }
+    
+    return usage;
+  }
+
+  async updateUserUsage(userId: string, usage: { projectsCount?: number; testimonialsCount?: number }): Promise<UsageMetrics> {
+    const [metrics] = await db
+      .insert(usageMetrics)
+      .values({
+        userId,
+        ...usage,
+      })
+      .onConflictDoUpdate({
+        target: usageMetrics.userId,
+        set: {
+          ...usage,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return metrics;
   }
 }
 

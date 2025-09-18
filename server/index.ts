@@ -5,9 +5,7 @@ import dotenv from "dotenv";
 
 // Load environment variables from .env file in development
 if (process.env.NODE_ENV === "development") {
-  const result = dotenv.config({ debug: true });
-  console.log("Dotenv result:", result);
-  console.log("DATABASE_URL after dotenv:", process.env.DATABASE_URL);
+  dotenv.config();
 }
 
 const app = express();
