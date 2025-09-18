@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Pricing from "@/pages/pricing";
+import Subscription from "@/pages/subscription";
 import HowItWorks from "@/pages/how-it-works";
 import About from "@/pages/about";
 import ProjectDetails from "@/pages/project-details";
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/embed/:projectId" component={Embed} />
           <Route path="/pricing" component={Pricing} />
+          <Route path="/subscription" component={Subscription} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />
         </>
@@ -38,6 +40,7 @@ function Router() {
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/embed/:projectId" component={Embed} />
           <Route path="/pricing" component={Pricing} />
+          <Route path="/subscription" component={Subscription} />
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />
         </>

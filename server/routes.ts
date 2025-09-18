@@ -154,8 +154,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/projects", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      
+      // Check usage limits
+      const user = await storage.getUser(userId);
+      const usage = await storage.getUserUsage(userId);
+      const limits = subscriptionLimits[user?.subscriptionPlan as SubscriptionPlan || 'free'];
+      
+      if ((usage?.projectsCount || 0) >= limits.projects) {
+        return res.status(403).json({ 
+          message: "Project limit reached", 
+          limit: limits.projects,
+          current: usage?.projectsCount || 0,
+          upgradeRequired: true
+        });
+      }
+      
       const projectData = { ...req.body, userId };
       const project = await storage.createProject(projectData);
+      
+      // Update usage count
+      await storage.updateUserUsage(userId, {
+        projectsCount: (usage?.projectsCount || 0) + 1,
+      });
+      
       res.status(201).json(project);
     } catch (error) {
       console.error("Error creating project:", error);

@@ -4,19 +4,53 @@ import { CheckCircle } from "lucide-react";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  // Get current subscription status
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ["/api/subscription/status"],
+    enabled: isAuthenticated,
+  });
+
+  const createCheckoutMutation = useMutation({
+    mutationFn: async (plan: string) => {
+      return await apiRequest("POST", "/api/subscription/create-checkout", { plan });
+    },
+    onSuccess: (data: any) => {
+      window.location.href = data.url;
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to create checkout session",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleGetStarted = () => {
-    if (isAuthenticated) {
-      // Navigate to dashboard/home for authenticated users
-      window.location.href = "/";
-    } else {
-      // Navigate to login for non-authenticated users
+    if (!isAuthenticated) {
       window.location.href = "/api/login";
+    } else {
+      window.location.href = "/";
     }
   };
+
+  const handleUpgrade = (plan: string) => {
+    if (!isAuthenticated) {
+      window.location.href = "/api/login";
+      return;
+    }
+    createCheckoutMutation.mutate(plan);
+  };
+
+  const currentPlan = subscriptionStatus?.plan || 'free';
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,11 +100,12 @@ export default function Pricing() {
                 </ul>
                 <Button 
                   onClick={handleGetStarted}
-                  variant="outline" 
+                  variant={currentPlan === 'free' ? 'secondary' : 'outline'}
                   className="w-full"
                   data-testid="button-pricing-detailed-free"
+                  disabled={currentPlan === 'free'}
                 >
-                  Get Started Free
+                  {currentPlan === 'free' ? 'Current Plan' : 'Get Started Free'}
                 </Button>
               </CardContent>
             </Card>
@@ -123,11 +158,14 @@ export default function Pricing() {
                   </li>
                 </ul>
                 <Button 
-                  onClick={handleGetStarted}
+                  onClick={() => handleUpgrade('pro')}
                   className="w-full"
                   data-testid="button-pricing-detailed-pro"
+                  disabled={createCheckoutMutation.isPending || currentPlan === 'pro'}
                 >
-                  Start 14-Day Free Trial
+                  {createCheckoutMutation.isPending ? 'Loading...' : 
+                   currentPlan === 'pro' ? 'Current Plan' : 
+                   currentPlan === 'free' ? 'Upgrade to Pro' : 'Switch to Pro'}
                 </Button>
               </CardContent>
             </Card>
@@ -177,12 +215,15 @@ export default function Pricing() {
                   </li>
                 </ul>
                 <Button 
-                  onClick={handleGetStarted}
-                  variant="outline" 
+                  onClick={() => handleUpgrade('agency')}
+                  variant={currentPlan === 'agency' ? 'secondary' : 'outline'}
                   className="w-full"
                   data-testid="button-pricing-detailed-agency"
+                  disabled={createCheckoutMutation.isPending || currentPlan === 'agency'}
                 >
-                  Start 14-Day Free Trial
+                  {createCheckoutMutation.isPending ? 'Loading...' : 
+                   currentPlan === 'agency' ? 'Current Plan' : 
+                   'Upgrade to Agency'}
                 </Button>
               </CardContent>
             </Card>
