@@ -38,6 +38,7 @@ export interface IStorage {
   getClientsByProjectId(projectId: string): Promise<Client[]>;
   getAllClientsByUserId(userId: string): Promise<Client[]>;
   getClient(id: string): Promise<Client | undefined>;
+  getClientByProjectAndEmail(projectId: string, email: string): Promise<Client | undefined>;
   updateClient(id: string, updates: Partial<InsertClient>): Promise<Client>;
   deleteClient(id: string): Promise<void>;
   
@@ -143,9 +144,12 @@ export class DatabaseStorage implements IStorage {
         id: clients.id,
         name: clients.name,
         email: clients.email,
+        phone: clients.phone,
         company: clients.company,
         projectId: clients.projectId,
         isContacted: clients.isContacted,
+        lastContactedAt: clients.lastContactedAt,
+        reminderOptOut: clients.reminderOptOut,
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
       })
@@ -157,6 +161,14 @@ export class DatabaseStorage implements IStorage {
 
   async getClient(id: string): Promise<Client | undefined> {
     const [client] = await db.select().from(clients).where(eq(clients.id, id));
+    return client;
+  }
+
+  async getClientByProjectAndEmail(projectId: string, email: string): Promise<Client | undefined> {
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.projectId, projectId), eq(clients.email, email)));
     return client;
   }
 
@@ -201,7 +213,13 @@ export class DatabaseStorage implements IStorage {
         rating: testimonials.rating,
         isApproved: testimonials.isApproved,
         isPublished: testimonials.isPublished,
+        type: testimonials.type,
         videoUrl: testimonials.videoUrl,
+        videoStatus: testimonials.videoStatus,
+        videoThumbnailUrl: testimonials.videoThumbnailUrl,
+        videoDuration: testimonials.videoDuration,
+        videoProvider: testimonials.videoProvider,
+        storageKey: testimonials.storageKey,
         createdAt: testimonials.createdAt,
         updatedAt: testimonials.updatedAt,
       })

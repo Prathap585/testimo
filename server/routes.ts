@@ -2,10 +2,27 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan } from "@shared/schema";
+import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema } from "@shared/schema";
 import { z } from "zod";
 import twilio from "twilio";
 import Stripe from "stripe";
+import multer from "multer";
+import { parse } from "csv-parse/sync";
+
+// Configure multer for file uploads (store in memory for CSV processing)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.mimetype === 'application/csv' || file.mimetype === 'application/vnd.ms-excel' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(null, false); // Reject file gracefully
+    }
+  }
+});
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -429,6 +446,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting client:", error);
       res.status(500).json({ message: "Failed to delete client" });
+    }
+  });
+
+  // CSV Import endpoints
+  app.get("/api/projects/:projectId/clients/import/template", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Set headers for CSV download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="clients_template.csv"');
+      
+      // CSV template with headers
+      const csvTemplate = 'name,email,phone,company\n"John Doe","john@example.com","555-0123","Example Corp"\n"Jane Smith","jane@example.com","555-0124","Tech Solutions"';
+      res.send(csvTemplate);
+    } catch (error) {
+      console.error("Error generating CSV template:", error);
+      res.status(500).json({ message: "Failed to generate template" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/clients/import", isAuthenticated, upload.single('csvFile'), async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No CSV file provided or invalid file type. Please upload a CSV file." });
+      }
+
+      // Parse CSV data
+      const csvData = req.file.buffer.toString('utf-8');
+      let records;
+      
+      try {
+        records = parse(csvData, {
+          columns: true,
+          skip_empty_lines: true,
+          trim: true,
+        });
+      } catch (parseError) {
+        return res.status(400).json({ message: "Invalid CSV format" });
+      }
+
+      const results = {
+        created: 0,
+        updated: 0,
+        skipped: 0,
+        errors: [] as string[]
+      };
+
+      // Process each record
+      for (let i = 0; i < records.length; i++) {
+        const record = records[i];
+        const rowNumber = i + 2; // +2 because of header row and 0-based index
+
+        try {
+          // Validate record using Zod schema
+          const validatedData = csvClientImportSchema.parse(record);
+          
+          // Normalize email to lowercase for consistent deduplication
+          const normalizedEmail = validatedData.email.toLowerCase().trim();
+          
+          // Add project ID
+          const clientData = {
+            ...validatedData,
+            email: normalizedEmail,
+            projectId: req.params.projectId
+          };
+
+          // Check if client already exists (project_id + email unique constraint)
+          const existingClient = await storage.getClientByProjectAndEmail(req.params.projectId, normalizedEmail);
+          
+          if (existingClient) {
+            // Update existing client
+            await storage.updateClient(existingClient.id, {
+              name: validatedData.name,
+              phone: validatedData.phone,
+              company: validatedData.company,
+            });
+            results.updated++;
+          } else {
+            // Create new client
+            await storage.createClient(clientData);
+            results.created++;
+          }
+        } catch (error) {
+          console.error(`Error processing row ${rowNumber}:`, error);
+          if (error instanceof z.ZodError) {
+            const fieldErrors = error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            results.errors.push(`Row ${rowNumber}: ${fieldErrors}`);
+          } else {
+            results.errors.push(`Row ${rowNumber}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          results.skipped++;
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error importing CSV:", error);
+      res.status(500).json({ message: "Failed to import CSV" });
     }
   });
 
