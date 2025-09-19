@@ -114,7 +114,12 @@ async function scheduleAutomaticReminders(client: any, project: any) {
           scheduledAt,
           status: "pending",
           attemptNumber: 0,
-          metadata: { automatic: true, offsetDays: rule.offsetDays }
+          metadata: { 
+            automatic: true, 
+            offsetDays: rule.offsetDays,
+            recurring: rule.recurring || false,
+            recurringInterval: rule.recurringInterval || null
+          }
         });
         
         console.log(`Scheduled automatic reminder for ${client.email} at ${scheduledAt}`);
@@ -122,6 +127,100 @@ async function scheduleAutomaticReminders(client: any, project: any) {
         console.error("Error scheduling automatic reminder:", error);
       }
     }
+  }
+}
+
+// Helper function to cancel pending reminders when testimonial is received
+async function cancelPendingRemindersForClient(projectId: string, clientEmail: string) {
+  try {
+    // Find client by email in this project
+    const clients = await storage.getClientsByProjectId(projectId);
+    const client = clients.find(c => c.email === clientEmail);
+    
+    if (!client) {
+      console.log(`No client found with email ${clientEmail} in project ${projectId}`);
+      return;
+    }
+    
+    // Get all pending reminders for this client
+    const reminders = await storage.getRemindersByProjectId(projectId);
+    const pendingReminders = reminders.filter(r => 
+      r.clientId === client.id && r.status === "pending"
+    );
+    
+    // Cancel all pending reminders
+    for (const reminder of pendingReminders) {
+      await storage.updateReminder(reminder.id, { 
+        status: "canceled",
+        metadata: { 
+          ...reminder.metadata, 
+          canceledAt: new Date().toISOString(),
+          cancelReason: "testimonial_received"
+        }
+      });
+      console.log(`Canceled pending reminder ${reminder.id} for ${clientEmail} - testimonial received`);
+    }
+    
+    if (pendingReminders.length > 0) {
+      console.log(`Canceled ${pendingReminders.length} pending reminders for ${clientEmail}`);
+    }
+  } catch (error) {
+    console.error("Error canceling pending reminders:", error);
+  }
+}
+
+// Helper function to schedule next recurring reminder
+async function scheduleNextRecurringReminder(reminder: any, project: any) {
+  const metadata = reminder.metadata || {};
+  
+  // Only schedule next reminder if this is marked as recurring
+  if (!metadata.recurring || !metadata.recurringInterval) {
+    return;
+  }
+  
+  try {
+    const now = new Date();
+    const nextScheduledAt = new Date(now);
+    
+    // Calculate next reminder time based on interval
+    switch (metadata.recurringInterval) {
+      case "daily":
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 1);
+        break;
+      case "alternate_days":
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 2);
+        break;
+      case "weekly":
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 7);
+        break;
+      default:
+        // Default to 3 days if interval not recognized
+        nextScheduledAt.setDate(nextScheduledAt.getDate() + 3);
+    }
+    
+    // Set time based on project settings (default to 9 AM if not specified)
+    const sendTime = project.reminderSettings?.schedule?.[0]?.sendTime || "09:00";
+    const [hours, minutes] = sendTime.split(':');
+    nextScheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // Create the next reminder
+    await storage.createReminder({
+      projectId: reminder.projectId,
+      clientId: reminder.clientId,
+      channel: reminder.channel,
+      scheduledAt: nextScheduledAt,
+      status: "pending",
+      attemptNumber: 0,
+      metadata: {
+        ...metadata,
+        parentReminderId: reminder.id,
+        recurringSequence: (metadata.recurringSequence || 0) + 1
+      }
+    });
+    
+    console.log(`Scheduled next recurring ${reminder.channel} reminder for client ${reminder.clientId} at ${nextScheduledAt}`);
+  } catch (error) {
+    console.error("Error scheduling next recurring reminder:", error);
   }
 }
 
@@ -876,13 +975,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      // Validate request body using Zod schema
-      const validationResult = insertReminderSchema.omit({ 
+      // Validate request body using Zod schema, with custom scheduledAt handling
+      const validationSchema = insertReminderSchema.omit({ 
         id: true, 
         projectId: true, 
         createdAt: true, 
         updatedAt: true 
-      }).safeParse(req.body);
+      }).extend({
+        scheduledAt: z.string().or(z.date()).transform((val) => {
+          return typeof val === 'string' ? new Date(val) : val;
+        })
+      });
+      
+      const validationResult = validationSchema.safeParse(req.body);
       
       if (!validationResult.success) {
         return res.status(400).json({ 
@@ -891,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { clientId, channel, scheduledAt, templateKey } = validationResult.data;
+      const { clientId, channel, scheduledAt, templateKey, metadata } = validationResult.data;
       
       // Validate client belongs to project
       const client = await storage.getClient(clientId);
@@ -908,11 +1013,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projectId: req.params.projectId,
         clientId,
         channel,
-        scheduledAt: new Date(scheduledAt),
+        scheduledAt, // Already converted to Date by the validation schema
         templateKey,
         status: "pending" as const,
         attemptNumber: 0,
-        metadata: {}
+        metadata: metadata || {}
       };
 
       const reminder = await storage.createReminder(reminderData);
@@ -960,6 +1065,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           metadata: { sentAt: new Date().toISOString(), variables }
         });
         
+        // Schedule next reminder if this is a recurring reminder
+        await scheduleNextRecurringReminder(reminder, project);
+        
         res.json({ message: "Email reminder sent successfully", variables });
       } else if (reminder.channel === "sms") {
         if (!client.phone) {
@@ -979,6 +1087,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             attemptNumber: (reminder.attemptNumber || 0) + 1,
             metadata: { sentAt: new Date().toISOString(), phone: client.phone, message }
           });
+
+          // Schedule next reminder if this is a recurring reminder
+          await scheduleNextRecurringReminder(reminder, project);
 
           res.json({ message: "SMS reminder sent successfully" });
         } catch (smsError) {
@@ -1173,6 +1284,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Public route - clients can submit testimonials
       const testimonialData = { ...req.body, projectId: req.params.projectId };
       const testimonial = await storage.createTestimonial(testimonialData);
+      
+      // Cancel any pending reminders for this client since testimonial was received
+      await cancelPendingRemindersForClient(req.params.projectId, testimonialData.clientEmail);
+      
       res.status(201).json(testimonial);
     } catch (error) {
       console.error("Error creating testimonial:", error);

@@ -235,6 +235,15 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
                     <strong>Template:</strong> {reminder.templateKey}
                   </p>
                 )}
+                {reminder.metadata?.recurring && (
+                  <p>
+                    <strong>Recurring:</strong> {
+                      reminder.metadata.recurringInterval === "daily" ? "Daily" :
+                      reminder.metadata.recurringInterval === "alternate_days" ? "Every 2 days" :
+                      reminder.metadata.recurringInterval === "weekly" ? "Weekly" : "Yes"
+                    } until testimonial received
+                  </p>
+                )}
               </div>
             </div>
 

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, Send, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar, Clock, Send, X, Repeat } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,6 +24,8 @@ interface ReminderFormData {
   channel: "email" | "sms";
   scheduledAt: string;
   templateKey?: string;
+  recurring: boolean;
+  recurringInterval?: "daily" | "alternate_days" | "weekly";
 }
 
 export default function ReminderFormModal({ 
@@ -38,7 +41,9 @@ export default function ReminderFormModal({
     clientId: preselectedClientId || "",
     channel: "email",
     scheduledAt: "",
-    templateKey: ""
+    templateKey: "",
+    recurring: false,
+    recurringInterval: "daily"
   });
 
   // Load clients for the project
@@ -58,7 +63,9 @@ export default function ReminderFormModal({
         clientId: preselectedClientId || "",
         channel: "email",
         scheduledAt: defaultTime.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
-        templateKey: ""
+        templateKey: "",
+        recurring: false,
+        recurringInterval: "daily"
       });
     }
   }, [open, preselectedClientId]);
@@ -69,7 +76,11 @@ export default function ReminderFormModal({
         clientId: data.clientId,
         channel: data.channel,
         scheduledAt: data.scheduledAt,
-        templateKey: data.templateKey || undefined
+        templateKey: data.templateKey || undefined,
+        metadata: {
+          recurring: data.recurring,
+          recurringInterval: data.recurring ? data.recurringInterval : null
+        }
       });
     },
     onSuccess: () => {
@@ -127,7 +138,11 @@ export default function ReminderFormModal({
   const canSendSMS = selectedClient?.phone && formData.channel === "sms";
   
   const handleInputChange = (field: keyof ReminderFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === "recurring") {
+      setFormData(prev => ({ ...prev, [field]: value === "true" }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   return (
@@ -228,6 +243,46 @@ export default function ReminderFormModal({
             </p>
           </div>
 
+          {/* Recurring Reminder Options */}
+          <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="recurring"
+                checked={formData.recurring}
+                onCheckedChange={(checked) => handleInputChange("recurring", String(checked))}
+                data-testid="checkbox-recurring"
+              />
+              <Label htmlFor="recurring" className="flex items-center gap-2 font-medium">
+                <Repeat className="h-4 w-4" />
+                Keep sending until testimonial received
+              </Label>
+            </div>
+            
+            {formData.recurring && (
+              <div className="space-y-2 ml-6">
+                <Label htmlFor="recurringInterval">How often to follow up</Label>
+                <Select
+                  value={formData.recurringInterval}
+                  onValueChange={(value: "daily" | "alternate_days" | "weekly") => handleInputChange("recurringInterval", value)}
+                >
+                  <SelectTrigger data-testid="select-recurring-interval">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Daily</SelectItem>
+                    <SelectItem value="alternate_days">Every 2 days</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.recurringInterval === "daily" && "Send a follow-up every day until testimonial is received"}
+                  {formData.recurringInterval === "alternate_days" && "Send a follow-up every 2 days until testimonial is received"}
+                  {formData.recurringInterval === "weekly" && "Send a follow-up every week until testimonial is received"}
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Client Info Summary */}
           {selectedClient && (
             <div className="p-3 bg-muted rounded-md">
@@ -238,6 +293,13 @@ export default function ReminderFormModal({
                 <p><strong>Channel:</strong> {formData.channel.toUpperCase()}</p>
                 {formData.scheduledAt && (
                   <p><strong>Scheduled:</strong> {new Date(formData.scheduledAt).toLocaleString()}</p>
+                )}
+                {formData.recurring && (
+                  <p><strong>Recurring:</strong> {
+                    formData.recurringInterval === "daily" ? "Daily until testimonial received" :
+                    formData.recurringInterval === "alternate_days" ? "Every 2 days until testimonial received" :
+                    formData.recurringInterval === "weekly" ? "Weekly until testimonial received" : "Until testimonial received"
+                  }</p>
                 )}
               </div>
             </div>
