@@ -1,6 +1,6 @@
 # Overview
 
-Testimo is a testimonial collection and management platform built with a modern full-stack architecture. The application allows users to automate the process of collecting testimonials from clients by creating projects, managing client relationships, and displaying testimonials publicly. The system features user authentication through Replit's OAuth system, a PostgreSQL database for data persistence, and a React-based frontend with shadcn/ui components.
+Testimo is a testimonial collection and management platform built with a modern full-stack architecture. The application allows users to automate the process of collecting testimonials from clients by creating projects, managing client relationships, and displaying testimonials publicly. The system features user authentication through Replit's OAuth system, a PostgreSQL database for data persistence, a React-based frontend with shadcn/ui components, and now includes an overall testimonial wall that showcases testimonials from all user projects in a unified, embeddable view.
 
 # User Preferences
 
@@ -72,3 +72,28 @@ Preferred communication style: Simple, everyday language.
 - **React Hook Form**: Performance-focused form library with validation
 - **Zod**: Runtime type validation for API requests and form data
 - **date-fns**: Modern date manipulation and formatting utilities
+
+# Recent Changes
+
+## Overall Testimonial Wall Feature (September 2025)
+Added a comprehensive overall testimonial wall feature that allows users to showcase testimonials from all their projects in a unified view:
+
+### Backend Implementation
+- **API Endpoint**: `GET /api/testimonials/wall` - Returns all published testimonials for authenticated users across all projects
+- **Public Embed API**: `GET /api/testimonials/wall/:userId/embed` - Public embeddable version with security hardening (no email exposure)
+- **Query Parameters**: Both endpoints support `theme` (light/dark), `layout` (grid/list/compact), and `limit` (number) customization
+- **Security**: Public embed endpoint filters to published testimonials only and omits sensitive user data
+
+### Frontend Implementation
+- **Main Page**: `/testimonial-wall` - Authenticated page with full controls and customization options
+- **Public Embed**: `/wall/:userId/embed` - Public embeddable version for external websites
+- **Navigation Integration**: "Testimonial Wall" link appears in navigation for authenticated users
+- **Customization Controls**: Layout selector, theme selector, limit selector, and embed functionality
+- **Responsive Design**: Supports grid, list, and compact layout modes with proper mobile responsiveness
+
+### Key Features
+- **Unified View**: Aggregates testimonials from all user projects with project badges
+- **Embeddable Widget**: Generate iframe embed codes for external websites
+- **Preview Functionality**: Preview embed appearance before sharing
+- **Empty State Handling**: Graceful handling when no testimonials exist with helpful guidance
+- **Security**: Public endpoints do not expose sensitive user information like email addresses
