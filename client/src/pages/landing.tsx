@@ -168,11 +168,11 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-muted-foreground font-medium" data-testid="trusted-by-title">
-              Trusted by thousands of businesses worldwide
+              Built for businesses of all sizes
             </p>
           </div>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-            {["Company", "Agency", "Studio", "Freelancer", "Consultant"].map((name, index) => (
+            {["Agencies", "Consultants", "SaaS", "E-commerce", "Freelancers"].map((name, index) => (
               <div 
                 key={index}
                 className="w-32 h-12 bg-muted rounded-lg flex items-center justify-center"
