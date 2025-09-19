@@ -97,3 +97,26 @@ Added a comprehensive overall testimonial wall feature that allows users to show
 - **Preview Functionality**: Preview embed appearance before sharing
 - **Empty State Handling**: Graceful handling when no testimonials exist with helpful guidance
 - **Security**: Public endpoints do not expose sensitive user information like email addresses
+
+## Automatic Testimonial Collection Workflow (September 2025)
+Implemented a complete "set and forget" automated testimonial collection system that triggers when work is marked as completed:
+
+### Backend Implementation
+- **Work Status Field**: Added `workStatus` column to clients table with three states: "pending", "in_progress", "completed"
+- **Automatic Triggering**: PATCH `/api/clients/:id` route now detects when work status changes to "completed"
+- **Immediate Testimonial Sending**: Automatically sends testimonial request when work is marked complete
+- **Follow-up Scheduling**: Based on project reminder settings, schedules automatic follow-up reminders
+- **Integration**: Uses existing reminder system infrastructure for seamless automation
+
+### Frontend Implementation
+- **Work Status Badges**: Client cards display colored status badges (Pending, In Progress, Completed)
+- **Status Management**: Dropdown menu allows easy work status updates with appropriate icons
+- **Visual Feedback**: Success messages confirm automatic testimonial sending and status changes
+- **Seamless Integration**: Works within existing client management interface
+
+### Key Features
+- **Automated Workflow**: User adds client → marks work complete → testimonial sent immediately → follow-ups scheduled automatically
+- **Manual Override**: Existing manual reminder scheduling still available for pre-completion requests  
+- **Project-Based Settings**: Automation respects project-level reminder settings (channels, schedule, quiet hours)
+- **Status Tracking**: Clear visual indicators for work progress and testimonial request status
+- **Set and Forget**: Complete automation eliminates need for manual follow-up management
