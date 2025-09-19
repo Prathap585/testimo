@@ -106,7 +106,19 @@ export default function TestimonialWall() {
   const [limit, setLimit] = useState(20);
 
   const { data, isLoading, error } = useQuery<WallData>({
-    queryKey: ["/api/testimonials/wall", { layout, theme, limit }],
+    queryKey: ["/api/testimonials/wall", layout, theme, limit],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        layout,
+        theme,
+        limit: limit.toString()
+      });
+      const response = await fetch(`/api/testimonials/wall?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch testimonials');
+      }
+      return response.json();
+    },
     enabled: isAuthenticated,
   });
 
@@ -180,32 +192,9 @@ export default function TestimonialWall() {
     );
   }
 
-  if (!data || data.testimonials.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-foreground mb-6" data-testid="testimonial-wall-title">
-              Your Testimonial Wall
-            </h1>
-            <div className="max-w-2xl mx-auto">
-              <h2 className="text-xl font-semibold mb-4">No testimonials yet</h2>
-              <p className="text-muted-foreground mb-6">
-                Once you collect and approve testimonials from your projects, they'll appear here in a beautiful showcase.
-              </p>
-              <Button onClick={() => window.location.href = '/projects'}>
-                Create Your First Project
-              </Button>
-            </div>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  const { user: userData, testimonials } = data;
+  const hasTestimonials = data && data.testimonials.length > 0;
+  const testimonials = data?.testimonials || [];
+  const userData = data?.user;
 
   return (
     <div className="min-h-screen bg-background">
@@ -297,37 +286,49 @@ export default function TestimonialWall() {
         </div>
 
         {/* Testimonials Display */}
-        {layout === 'list' ? (
-          <div className="space-y-6 max-w-4xl mx-auto">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard 
-                key={testimonial.id} 
-                testimonial={testimonial} 
-                showProject={true}
-              />
-            ))}
-          </div>
-        ) : layout === 'compact' ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard 
-                key={testimonial.id} 
-                testimonial={testimonial} 
-                compact={true}
-                showProject={true}
-              />
-            ))}
-          </div>
+        {hasTestimonials ? (
+          layout === 'list' ? (
+            <div className="space-y-6 max-w-4xl mx-auto">
+              {testimonials.map((testimonial) => (
+                <TestimonialCard 
+                  key={testimonial.id} 
+                  testimonial={testimonial} 
+                  showProject={true}
+                />
+              ))}
+            </div>
+          ) : layout === 'compact' ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {testimonials.map((testimonial) => (
+                <TestimonialCard 
+                  key={testimonial.id} 
+                  testimonial={testimonial} 
+                  compact={true}
+                  showProject={true}
+                />
+              ))}
+            </div>
+          ) : (
+            // Default grid layout
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {testimonials.map((testimonial) => (
+                <TestimonialCard 
+                  key={testimonial.id} 
+                  testimonial={testimonial}
+                  showProject={true}
+                />
+              ))}
+            </div>
+          )
         ) : (
-          // Default grid layout
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {testimonials.map((testimonial) => (
-              <TestimonialCard 
-                key={testimonial.id} 
-                testimonial={testimonial}
-                showProject={true}
-              />
-            ))}
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold mb-4">No testimonials yet</h2>
+            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+              Once you collect and approve testimonials from your projects, they'll appear here in a beautiful showcase. You can still customize the embed settings above and copy the embed code to prepare for when testimonials start coming in.
+            </p>
+            <Button onClick={() => window.location.href = '/projects'}>
+              Create Your First Project
+            </Button>
           </div>
         )}
       </div>

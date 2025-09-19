@@ -8,7 +8,6 @@ interface EmbedWallData {
   user: {
     id: string;
     name: string;
-    email: string;
   };
   testimonials: Array<{
     id: string;

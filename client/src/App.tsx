@@ -43,6 +43,7 @@ function Router() {
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/testimonial-wall" component={TestimonialWall} />
           <Route path="/embed/:projectId" component={Embed} />
+          <Route path="/wall/:userId/embed" component={TestimonialWallEmbed} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/how-it-works" component={HowItWorks} />

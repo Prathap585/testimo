@@ -195,8 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = {
         user: {
           id: user.id,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Our Clients Say',
-          email: user.email
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Our Clients Say'
         },
         testimonials: limitedTestimonials,
         settings: {
