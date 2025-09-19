@@ -267,6 +267,30 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(testimonials.createdAt));
   }
 
+  async getPublishedTestimonialsByUserId(userId: string): Promise<(Partial<Testimonial> & { projectName: string; projectId: string })[]> {
+    return await db
+      .select({
+        id: testimonials.id,
+        clientName: testimonials.clientName,
+        clientTitle: testimonials.clientTitle,
+        clientCompany: testimonials.clientCompany,
+        content: testimonials.content,
+        rating: testimonials.rating,
+        videoUrl: testimonials.videoUrl,
+        createdAt: testimonials.createdAt,
+        projectName: projects.name,
+        projectId: projects.id,
+      })
+      .from(testimonials)
+      .innerJoin(projects, eq(testimonials.projectId, projects.id))
+      .where(and(
+        eq(projects.userId, userId),
+        eq(testimonials.isApproved, true), 
+        eq(testimonials.isPublished, true)
+      ))
+      .orderBy(desc(testimonials.createdAt));
+  }
+
   // Contact form operations
   async createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission> {
     const [newSubmission] = await db.insert(contactSubmissions).values(submission).returning();

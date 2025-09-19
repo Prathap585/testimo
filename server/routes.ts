@@ -139,6 +139,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Overall testimonial wall for user (all projects combined)
+  app.get("/api/testimonials/wall", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { limit = "20", theme = "light", layout = "grid" } = req.query;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const testimonials = await storage.getPublishedTestimonialsByUserId(userId);
+      
+      // Limit the number of testimonials
+      const limitedTestimonials = testimonials.slice(0, parseInt(limit as string, 10));
+
+      const response = {
+        user: {
+          id: user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Your Business',
+          email: user.email
+        },
+        testimonials: limitedTestimonials,
+        settings: {
+          theme: theme as string,
+          layout: layout as string,
+          limit: parseInt(limit as string, 10)
+        }
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching user testimonial wall:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
+  // Public overall testimonial wall for sharing (embeddable)
+  app.get("/api/testimonials/wall/:userId/embed", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { limit = "20", theme = "light", layout = "grid" } = req.query;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const testimonials = await storage.getPublishedTestimonialsByUserId(userId);
+      
+      // Limit the number of testimonials
+      const limitedTestimonials = testimonials.slice(0, parseInt(limit as string, 10));
+
+      const response = {
+        user: {
+          id: user.id,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Our Clients Say',
+          email: user.email
+        },
+        testimonials: limitedTestimonials,
+        settings: {
+          theme: theme as string,
+          layout: layout as string,
+          limit: parseInt(limit as string, 10)
+        }
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("Error fetching public user testimonial wall:", error);
+      res.status(500).json({ message: "Failed to fetch testimonials" });
+    }
+  });
+
   // Protected routes - Projects
   app.get("/api/projects", isAuthenticated, async (req: any, res) => {
     try {
