@@ -13,6 +13,8 @@ import About from "@/pages/about";
 import ProjectDetails from "@/pages/project-details";
 import SubmitTestimonial from "@/pages/submit-testimonial";
 import Testimonials from "@/pages/testimonials";
+import TestimonialWall from "@/pages/testimonial-wall";
+import TestimonialWallEmbed from "@/pages/testimonial-wall-embed";
 import Embed from "@/pages/embed";
 import NotFound from "@/pages/not-found";
 
@@ -27,6 +29,7 @@ function Router() {
           <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/embed/:projectId" component={Embed} />
+          <Route path="/wall/:userId/embed" component={TestimonialWallEmbed} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/subscription" component={Subscription} />
           <Route path="/how-it-works" component={HowItWorks} />
@@ -38,6 +41,7 @@ function Router() {
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/testimonials" component={Testimonials} />
+          <Route path="/testimonial-wall" component={TestimonialWall} />
           <Route path="/embed/:projectId" component={Embed} />
           <Route path="/pricing" component={Pricing} />
           <Route path="/subscription" component={Subscription} />

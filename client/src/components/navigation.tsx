@@ -54,6 +54,7 @@ export default function Navigation() {
             <div className="ml-10 flex items-baseline space-x-8">
               <NavLink href="/">Home</NavLink>
               <NavLink href="/testimonials">Testimonials</NavLink>
+              {isAuthenticated && <NavLink href="/testimonial-wall">Testimonial Wall</NavLink>}
               <NavLink href="/pricing">Pricing</NavLink>
               <NavLink href="/how-it-works">How It Works</NavLink>
               <NavLink href="/about">About</NavLink>
@@ -102,6 +103,7 @@ export default function Navigation() {
                 <div className="flex flex-col space-y-4 mt-8">
                   <NavLink href="/" onClick={closeMobileMenu}>Home</NavLink>
                   <NavLink href="/testimonials" onClick={closeMobileMenu}>Testimonials</NavLink>
+                  {isAuthenticated && <NavLink href="/testimonial-wall" onClick={closeMobileMenu}>Testimonial Wall</NavLink>}
                   <NavLink href="/pricing" onClick={closeMobileMenu}>Pricing</NavLink>
                   <NavLink href="/how-it-works" onClick={closeMobileMenu}>How It Works</NavLink>
                   <NavLink href="/about" onClick={closeMobileMenu}>About</NavLink>
