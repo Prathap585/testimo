@@ -65,17 +65,19 @@ export default function HowItWorks() {
                   <CardContent className="p-8">
                     <div className="space-y-4">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-muted-foreground" />
+                        <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
+                          <Users className="h-6 w-6 text-primary" />
                         </div>
                         <div className="flex-1">
-                          <div className="w-32 h-4 bg-muted rounded mb-2"></div>
-                          <div className="w-48 h-3 bg-muted/70 rounded"></div>
+                          <div className="font-medium text-sm mb-1">Sarah Johnson</div>
+                          <div className="text-xs text-muted-foreground">sarah@company.com</div>
                         </div>
                       </div>
-                      <div className="w-full h-2 bg-muted rounded"></div>
-                      <div className="w-3/4 h-2 bg-muted rounded"></div>
-                      <div className="w-full h-2 bg-muted rounded"></div>
+                      <div className="text-xs text-muted-foreground">
+                        <div className="mb-1">📋 Project: Website Redesign</div>
+                        <div className="mb-1">🎯 Work Status: Completed</div>
+                        <div>⚡ Auto-request sent!</div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -119,14 +121,15 @@ export default function HowItWorks() {
                         </div>
                         <span className="text-xs text-muted-foreground">Automated</span>
                       </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-3 bg-muted rounded"></div>
-                        <div className="w-4/5 h-3 bg-muted rounded"></div>
-                        <div className="w-full h-3 bg-muted rounded"></div>
+                      <div className="bg-muted/30 p-3 rounded text-xs">
+                        <div className="font-medium mb-1">📧 To: sarah@company.com</div>
+                        <div className="text-muted-foreground mb-2">Hi Sarah! We'd love your feedback on our recent website redesign project...</div>
+                        <div className="text-primary">🔗 Share your testimonial (2 min)</div>
                       </div>
                       <div className="flex justify-end">
-                        <div className="w-20 h-8 bg-primary/20 rounded flex items-center justify-center">
-                          <Send className="h-4 w-4 text-primary" />
+                        <div className="px-3 py-1 bg-primary/20 rounded flex items-center text-xs text-primary">
+                          <Send className="h-3 w-3 mr-1" />
+                          Sent ✓
                         </div>
                       </div>
                     </div>
@@ -170,11 +173,18 @@ export default function HowItWorks() {
                         <div className="w-16 h-16 bg-primary/20 rounded-full mx-auto mb-4 flex items-center justify-center">
                           <Star className="h-8 w-8 text-primary" />
                         </div>
-                        <div className="w-48 h-4 bg-muted rounded mx-auto"></div>
+                        <div className="font-medium text-sm">Rate Your Experience</div>
+                        <div className="flex justify-center mt-2">
+                          {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />)}
+                        </div>
                       </div>
                       <div className="space-y-3">
-                        <div className="w-full h-20 bg-muted/50 rounded-lg"></div>
-                        <div className="w-32 h-10 bg-primary/20 rounded mx-auto"></div>
+                        <div className="bg-muted/30 p-3 rounded text-xs text-muted-foreground">
+                          "The team delivered an amazing website that exceeded our expectations. Professional, timely, and great communication throughout!"
+                        </div>
+                        <div className="w-32 h-8 bg-primary text-primary-foreground rounded mx-auto flex items-center justify-center text-xs font-medium">
+                          Submit ✓
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -214,20 +224,21 @@ export default function HowItWorks() {
                   <CardContent className="p-8">
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                          <div className="w-full h-3 bg-muted rounded mb-2"></div>
-                          <div className="w-3/4 h-3 bg-muted rounded"></div>
+                        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-700">
+                          <div className="text-xs font-medium text-green-800 dark:text-green-200 mb-1">⭐ Sarah Johnson</div>
+                          <div className="text-xs text-green-700 dark:text-green-300">"Amazing website that exceeded expectations..."</div>
                         </div>
-                        <div className="bg-muted/30 p-4 rounded-lg">
-                          <div className="w-full h-3 bg-muted rounded mb-2"></div>
-                          <div className="w-2/3 h-3 bg-muted rounded"></div>
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                          <div className="text-xs font-medium text-yellow-800 dark:text-yellow-200 mb-1">⭐ Mike Chen</div>
+                          <div className="text-xs text-yellow-700 dark:text-yellow-300">"Professional team, great communication..."</div>
                         </div>
                       </div>
                       <div className="flex justify-center space-x-2">
-                        <div className="w-16 h-8 bg-primary/20 rounded flex items-center justify-center">
-                          <ThumbsUp className="h-4 w-4 text-primary" />
+                        <div className="px-3 py-1 bg-primary text-primary-foreground rounded flex items-center text-xs">
+                          <ThumbsUp className="h-3 w-3 mr-1" />
+                          Approve
                         </div>
-                        <div className="w-16 h-8 bg-muted/50 rounded"></div>
+                        <div className="px-3 py-1 bg-muted/50 rounded text-xs text-muted-foreground">🌐 Publish</div>
                       </div>
                     </div>
                   </CardContent>
@@ -242,7 +253,7 @@ export default function HowItWorks() {
               Ready to start collecting testimonials?
             </h2>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto" data-testid="cta-subtitle">
-              Join thousands of businesses who trust Testimo to automate their testimonial collection process.
+              Join the businesses who are already automating their testimonial collection process with Testimo.
             </p>
             <Button 
               onClick={handleGetStarted}
