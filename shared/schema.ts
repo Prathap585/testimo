@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   index,
+  uniqueIndex,
   jsonb,
   pgTable,
   timestamp,
@@ -50,6 +51,10 @@ export const projects = pgTable("projects", {
   isActive: boolean("is_active").default(true),
   emailSettings: jsonb("email_settings").default(sql`'{"fromName": "", "subject": "Please share your testimonial for {{projectName}}", "message": "Hi {{clientName}},\\n\\nI hope this message finds you well!\\n\\nI would greatly appreciate if you could take a few minutes to share your experience working with me on {{projectName}}. Your testimonial would mean a lot and help showcase the value of my work to future clients.\\n\\nYou can submit your testimonial using this link: {{testimonialUrl}}\\n\\nThank you so much for your time and support!\\n\\nBest regards"}'::jsonb`),
   smsSettings: jsonb("sms_settings").default(sql`'{"message": "Hi {{clientName}}! Could you please share a testimonial for {{projectName}}? It would mean a lot to me. Submit here: {{testimonialUrl}}"}'::jsonb`),
+  // Branding settings for customization
+  brandingSettings: jsonb("branding_settings").default(sql`'{"logoUrl": null, "primaryColor": "#3b82f6", "accentColor": "#1e40af", "fontFamily": "Inter", "cornerRadius": "0.5rem", "hidePlatformBranding": false}'::jsonb`),
+  // Reminder settings for automated follow-ups
+  reminderSettings: jsonb("reminder_settings").default(sql`'{"enabled": false, "channels": ["email"], "schedule": [{"offsetDays": 3, "sendTime": "09:00", "maxAttempts": 3, "cooldownDays": 7}], "quietHours": {"start": "22:00", "end": "08:00"}, "timezone": "UTC"}'::jsonb`),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -63,9 +68,14 @@ export const clients = pgTable("clients", {
   phone: varchar("phone"),
   company: varchar("company"),
   isContacted: boolean("is_contacted").default(false),
+  lastContactedAt: timestamp("last_contacted_at"),
+  reminderOptOut: boolean("reminder_opt_out").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // Unique constraint on project_id + email for CSV import deduplication
+  uniqueIndex("unique_project_client_email").on(table.projectId, table.email)
+]);
 
 // Testimonials table
 export const testimonials = pgTable("testimonials", {
@@ -81,7 +91,14 @@ export const testimonials = pgTable("testimonials", {
   rating: integer("rating").notNull(), // 1-5 stars
   isApproved: boolean("is_approved").default(false),
   isPublished: boolean("is_published").default(false),
+  // Video support fields
+  type: varchar("type").default("text"), // 'text' or 'video'
   videoUrl: varchar("video_url"),
+  videoStatus: varchar("video_status").default("pending"), // 'pending', 'processing', 'ready', 'failed'
+  videoThumbnailUrl: varchar("video_thumbnail_url"),
+  videoDuration: integer("video_duration"),
+  videoProvider: varchar("video_provider"), // 'cloudflare', 'mux', 's3', etc.
+  storageKey: varchar("storage_key"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -96,6 +113,26 @@ export const contactSubmissions = pgTable("contact_submissions", {
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Reminders table for automated follow-ups
+export const reminders = pgTable("reminders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => projects.id),
+  clientId: varchar("client_id").notNull().references(() => clients.id),
+  channel: varchar("channel").notNull(), // 'email' or 'sms'
+  templateKey: varchar("template_key"), // for custom message templates
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  status: varchar("status").default("pending"), // 'pending', 'sent', 'failed', 'canceled'
+  attemptNumber: integer("attempt_number").default(0),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Performance indexes for efficient reminder scheduling
+  index("idx_reminders_scheduled_at").on(table.scheduledAt),
+  index("idx_reminders_status_scheduled").on(table.status, table.scheduledAt),
+  index("idx_reminders_project_status").on(table.projectId, table.status)
+]);
 
 // Usage tracking table
 export const usageMetrics = pgTable("usage_metrics", {
@@ -121,6 +158,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   clients: many(clients),
   testimonials: many(testimonials),
+  reminders: many(reminders),
 }));
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -129,6 +167,7 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
     references: [projects.id],
   }),
   testimonials: many(testimonials),
+  reminders: many(reminders),
 }));
 
 export const testimonialsRelations = relations(testimonials, ({ one }) => ({
@@ -146,6 +185,17 @@ export const usageMetricsRelations = relations(usageMetrics, ({ one }) => ({
   user: one(users, {
     fields: [usageMetrics.userId],
     references: [users.id],
+  }),
+}));
+
+export const remindersRelations = relations(reminders, ({ one }) => ({
+  project: one(projects, {
+    fields: [reminders.projectId],
+    references: [projects.id],
+  }),
+  client: one(clients, {
+    fields: [reminders.clientId],
+    references: [clients.id],
   }),
 }));
 
@@ -178,6 +228,20 @@ export const insertContactSubmissionSchema = createInsertSchema(contactSubmissio
   createdAt: true,
 });
 
+export const insertReminderSchema = createInsertSchema(reminders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// CSV Import schema for bulk client creation
+export const csvClientImportSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -196,6 +260,9 @@ export const insertUsageMetricsSchema = createInsertSchema(usageMetrics).omit({
 });
 export type UsageMetrics = typeof usageMetrics.$inferSelect;
 export type InsertUsageMetrics = z.infer<typeof insertUsageMetricsSchema>;
+export type InsertReminder = z.infer<typeof insertReminderSchema>;
+export type Reminder = typeof reminders.$inferSelect;
+export type CsvClientImport = z.infer<typeof csvClientImportSchema>;
 
 // Subscription plan limits
 export const subscriptionLimits = {
