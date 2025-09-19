@@ -73,6 +73,58 @@ function replaceTemplateVariables(template: string, variables: Record<string, st
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => variables[key] || match);
 }
 
+// Helper function to send testimonial request
+async function sendTestimonialRequest(client: any, project: any, channel: string = "email") {
+  const testimonialUrl = `${process.env.REPL_URL || 'http://localhost:5000'}/submit/${project.id}?email=${encodeURIComponent(client.email)}`;
+  
+  console.log(`Sending ${channel} testimonial request to ${client.email} for project ${project.name}`);
+  console.log(`Testimonial URL: ${testimonialUrl}`);
+  
+  // TODO: Replace with actual email sending functionality
+  // For now, just log the action
+  
+  return { success: true, url: testimonialUrl };
+}
+
+// Helper function to schedule automatic follow-up reminders
+async function scheduleAutomaticReminders(client: any, project: any) {
+  if (!project.reminderSettings?.enabled || !project.reminderSettings?.schedule) {
+    return;
+  }
+  
+  const schedule = project.reminderSettings.schedule;
+  const now = new Date();
+  
+  // Schedule follow-up reminders based on project settings
+  for (const rule of schedule) {
+    const scheduledAt = new Date(now);
+    scheduledAt.setDate(scheduledAt.getDate() + rule.offsetDays);
+    
+    // Set the specific time
+    const [hours, minutes] = rule.sendTime.split(':');
+    scheduledAt.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // Only schedule if it's in the future
+    if (scheduledAt > now) {
+      try {
+        await storage.createReminder({
+          projectId: project.id,
+          clientId: client.id,
+          channel: project.reminderSettings.channels[0] || "email", // Use first available channel
+          scheduledAt,
+          status: "pending",
+          attemptNumber: 0,
+          metadata: { automatic: true, offsetDays: rule.offsetDays }
+        });
+        
+        console.log(`Scheduled automatic reminder for ${client.email} at ${scheduledAt}`);
+      } catch (error) {
+        console.error("Error scheduling automatic reminder:", error);
+      }
+    }
+  }
+}
+
 // SMS sending function
 async function sendSMS(to: string, message: string): Promise<any> {
   if (!twilioClient) {
@@ -609,7 +661,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
+      const previousWorkStatus = client.workStatus;
+      const newWorkStatus = req.body.workStatus;
+      
       const updatedClient = await storage.updateClient(req.params.id, req.body);
+      
+      // If work status changed to "completed", automatically send testimonial request
+      if (previousWorkStatus !== "completed" && newWorkStatus === "completed") {
+        try {
+          // Send testimonial request immediately 
+          await sendTestimonialRequest(client, project, "email");
+          
+          // Schedule automatic follow-up reminders based on project settings
+          if (project.reminderSettings?.enabled) {
+            await scheduleAutomaticReminders(client, project);
+          }
+          
+          // Update client as contacted
+          await storage.updateClient(req.params.id, { 
+            isContacted: true, 
+            lastContactedAt: new Date()
+          });
+        } catch (error) {
+          console.error("Error sending automatic testimonial request:", error);
+          // Don't fail the status update if sending fails
+        }
+      }
+      
       res.json(updatedClient);
     } catch (error) {
       console.error("Error updating client:", error);

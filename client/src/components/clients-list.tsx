@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload, Bell } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload, Bell, PlayCircle, Pause, CheckSquare } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -63,9 +64,26 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     setShowReminderModal(true);
   };
 
+  const handleUpdateWorkStatus = (clientId: string, workStatus: string) => {
+    updateWorkStatusMutation.mutate({ clientId, workStatus });
+  };
+
   const handleDeleteClient = async (clientId: string) => {
     if (window.confirm("Are you sure you want to delete this client? This action cannot be undone.")) {
       deleteClientMutation.mutate(clientId);
+    }
+  };
+
+  const getWorkStatusBadge = (workStatus: string) => {
+    switch (workStatus) {
+      case "pending":
+        return <Badge variant="secondary" className="text-xs"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case "in_progress":
+        return <Badge variant="outline" className="text-xs"><PlayCircle className="w-3 h-3 mr-1" />In Progress</Badge>;
+      case "completed":
+        return <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700"><CheckSquare className="w-3 h-3 mr-1" />Completed</Badge>;
+      default:
+        return <Badge variant="secondary" className="text-xs"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
     }
   };
 
@@ -106,6 +124,32 @@ export default function ClientsList({ projectId }: ClientsListProps) {
       toast({
         title: "Error",
         description: error?.message || "Failed to send SMS request. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateWorkStatusMutation = useMutation({
+    mutationFn: async ({ clientId, workStatus }: { clientId: string; workStatus: string }) => {
+      return await apiRequest("PATCH", `/api/clients/${clientId}`, { workStatus });
+    },
+    onSuccess: (data, variables) => {
+      const statusLabels = {
+        pending: "Pending",
+        in_progress: "In Progress", 
+        completed: "Completed"
+      };
+      toast({
+        title: "Work status updated",
+        description: `Client work status updated to ${statusLabels[variables.workStatus as keyof typeof statusLabels]}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update work status. Please try again.",
         variant: "destructive",
       });
     },
@@ -230,7 +274,10 @@ export default function ClientsList({ projectId }: ClientsListProps) {
         {clients.map((client) => (
           <Card key={client.id} className="hover:shadow-md transition-shadow duration-200" data-testid={`client-card-${client.id}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-base font-medium truncate">{client.name}</CardTitle>
+              <div className="flex flex-col gap-2">
+                <CardTitle className="text-base font-medium truncate">{client.name}</CardTitle>
+                {getWorkStatusBadge(client.workStatus || "pending")}
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0" data-testid={`client-menu-${client.id}`}>
@@ -244,6 +291,33 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                   >
                     Edit Client
                   </DropdownMenuItem>
+                  {(client.workStatus !== "pending") && (
+                    <DropdownMenuItem 
+                      onClick={() => handleUpdateWorkStatus(client.id, "pending")}
+                      data-testid={`set-pending-${client.id}`}
+                    >
+                      <Clock className="w-4 h-4 mr-2" />
+                      Mark as Pending
+                    </DropdownMenuItem>
+                  )}
+                  {(client.workStatus !== "in_progress") && (
+                    <DropdownMenuItem 
+                      onClick={() => handleUpdateWorkStatus(client.id, "in_progress")}
+                      data-testid={`set-in-progress-${client.id}`}
+                    >
+                      <PlayCircle className="w-4 h-4 mr-2" />
+                      Mark as In Progress
+                    </DropdownMenuItem>
+                  )}
+                  {(client.workStatus !== "completed") && (
+                    <DropdownMenuItem 
+                      onClick={() => handleUpdateWorkStatus(client.id, "completed")}
+                      data-testid={`set-completed-${client.id}`}
+                    >
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      Mark as Completed
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem 
                     onClick={() => handleSendEmailRequest(client)}
                     disabled={client.isContacted || sendEmailRequestMutation.isPending}

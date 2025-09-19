@@ -67,6 +67,7 @@ export const clients = pgTable("clients", {
   email: varchar("email").notNull(),
   phone: varchar("phone"),
   company: varchar("company"),
+  workStatus: varchar("work_status").default("pending"), // 'pending', 'in_progress', 'completed'
   isContacted: boolean("is_contacted").default(false),
   lastContactedAt: timestamp("last_contacted_at"),
   reminderOptOut: boolean("reminder_opt_out").default(false),
