@@ -242,6 +242,15 @@ export const csvClientImportSchema = z.object({
   company: z.string().optional(),
 });
 
+// Branding settings schema for project customization (PATCH operations only)
+export const brandingSettingsSchema = z.object({
+  primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+  accentColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
+  fontFamily: z.enum(["Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins"]).optional(),
+  cornerRadius: z.string().regex(/^(\d+(\.\d+)?)(px|rem|em)$/, "Must be a valid CSS length").optional(),
+  hidePlatformBranding: z.boolean().optional(),
+});
+
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -263,6 +272,7 @@ export type InsertUsageMetrics = z.infer<typeof insertUsageMetricsSchema>;
 export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type Reminder = typeof reminders.$inferSelect;
 export type CsvClientImport = z.infer<typeof csvClientImportSchema>;
+export type BrandingSettings = z.infer<typeof brandingSettingsSchema>;
 
 // Subscription plan limits
 export const subscriptionLimits = {

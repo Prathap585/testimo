@@ -2,14 +2,17 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema, brandingSettingsSchema } from "@shared/schema";
 import { z } from "zod";
 import twilio from "twilio";
 import Stripe from "stripe";
 import multer from "multer";
 import { parse } from "csv-parse/sync";
+import fs from "fs/promises";
+import path from "path";
+import { fileTypeFromBuffer } from "file-type";
 
-// Configure multer for file uploads (store in memory for CSV processing)
+// Configure multer for CSV file uploads (store in memory for processing)
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: {
@@ -17,6 +20,23 @@ const upload = multer({
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'text/csv' || file.mimetype === 'application/csv' || file.mimetype === 'application/vnd.ms-excel' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(null, false); // Reject file gracefully
+    }
+  }
+});
+
+// Configure multer for logo uploads (use memory storage for secure validation)
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for images
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept safe image formats (no SVG to prevent XSS)
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || 
+        file.mimetype === 'image/gif' || file.mimetype === 'image/webp') {
       cb(null, true);
     } else {
       cb(null, false); // Reject file gracefully
@@ -75,6 +95,44 @@ async function sendSMS(to: string, message: string): Promise<any> {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication
   await setupAuth(app);
+
+  // Ensure uploads directory exists
+  try {
+    await fs.mkdir('uploads/logos', { recursive: true });
+  } catch (error) {
+    console.warn('Could not create uploads directory:', error);
+  }
+  
+  // Static file serving for uploaded logos with security headers
+  app.use('/uploads/logos', (req, res, next) => {
+    // Security: prevent directory traversal and nested paths
+    const p = req.path;
+    if (p.includes('..') || p.slice(1).includes('/')) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+    
+    // Only serve image files with safe extensions
+    const ext = path.extname(req.path).toLowerCase();
+    if (!['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext)) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+    
+    next();
+  });
+  
+  // Serve static files with security headers
+  const express = await import('express');
+  const staticServer = express.default.static('uploads/logos', {
+    maxAge: '1d', // Cache for 1 day
+    etag: true,
+    setHeaders: (res) => {
+      // Security headers for static files
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self';");
+    }
+  });
+  
+  app.use('/uploads/logos', staticServer);
 
   // Auth routes
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
@@ -302,7 +360,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const updatedProject = await storage.updateProject(req.params.id, req.body);
+      // Whitelist allowed fields for security (branding/logo handled via dedicated endpoints)
+      const { name, description, isActive, emailSettings, reminderSettings } = req.body;
+      const allowedUpdates = { name, description, isActive, emailSettings, reminderSettings };
+      
+      // Remove undefined fields
+      Object.keys(allowedUpdates).forEach(key => 
+        allowedUpdates[key] === undefined && delete allowedUpdates[key]
+      );
+      
+      const updatedProject = await storage.updateProject(req.params.id, allowedUpdates);
       res.json(updatedProject);
     } catch (error) {
       console.error("Error updating project:", error);
@@ -347,6 +414,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting project:", error);
       res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+
+  // Project Branding endpoints
+  app.post("/api/projects/:projectId/logo", isAuthenticated, logoUpload.single('logo'), async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No logo file provided or invalid file type. Please upload a JPEG, PNG, GIF, or WebP image." });
+      }
+
+      // Validate file type using magic bytes (more secure than trusting headers)
+      const fileType = await fileTypeFromBuffer(req.file.buffer);
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const allowedExtensions = ['jpg', 'png', 'gif', 'webp'];
+      
+      if (!fileType || !allowedTypes.includes(fileType.mime)) {
+        return res.status(400).json({ 
+          message: `Invalid file type. Detected: ${fileType?.mime || 'unknown'}. Please upload a JPEG, PNG, GIF, or WebP image.` 
+        });
+      }
+
+      // Use detected file type for safe extension, not originalname
+      const safeExtension = allowedExtensions[allowedTypes.indexOf(fileType.mime)];
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const safeFilename = `logo-${uniqueSuffix}.${safeExtension}`;
+      const safePath = path.join('uploads/logos', safeFilename);
+
+      // Write file to safe location with safe name
+      await fs.writeFile(safePath, req.file.buffer);
+
+      // Generate the logo URL path
+      const logoUrl = `/uploads/logos/${safeFilename}`;
+
+      // Clean up old logo file if it exists
+      const currentBranding = project.brandingSettings || {};
+      if (currentBranding.logoUrl && currentBranding.logoUrl.startsWith('/uploads/logos/')) {
+        const oldFilename = path.basename(currentBranding.logoUrl);
+        const oldFilePath = path.join('uploads/logos', oldFilename);
+        try {
+          await fs.access(oldFilePath);
+          await fs.unlink(oldFilePath);
+        } catch (cleanupError) {
+          console.warn('Failed to delete old logo file:', cleanupError);
+          // Continue with upload even if cleanup fails
+        }
+      }
+
+      // Update project branding settings with new logo URL
+      const updatedBranding = {
+        ...currentBranding,
+        logoUrl
+      };
+
+      const updatedProject = await storage.updateProject(req.params.projectId, {
+        brandingSettings: updatedBranding
+      });
+
+      res.json({
+        logoUrl,
+        brandingSettings: updatedProject.brandingSettings,
+        message: "Logo uploaded successfully"
+      });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      res.status(500).json({ message: "Failed to upload logo" });
+    }
+  });
+
+  app.get("/api/projects/:projectId/branding", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      res.json(project.brandingSettings || {});
+    } catch (error) {
+      console.error("Error fetching branding settings:", error);
+      res.status(500).json({ message: "Failed to fetch branding settings" });
+    }
+  });
+
+  app.patch("/api/projects/:projectId/branding", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate branding settings
+      const validatedSettings = brandingSettingsSchema.parse(req.body);
+
+      // Merge with existing branding settings (logoUrl is handled only via POST /logo endpoint)
+      const currentBranding = project.brandingSettings || {};
+      const updatedBranding = {
+        ...currentBranding,
+        ...validatedSettings
+      };
+
+      const updatedProject = await storage.updateProject(req.params.projectId, {
+        brandingSettings: updatedBranding
+      });
+
+      res.json(updatedProject.brandingSettings);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid branding settings", 
+          errors: error.errors 
+        });
+      }
+      console.error("Error updating branding settings:", error);
+      res.status(500).json({ message: "Failed to update branding settings" });
     }
   });
 
