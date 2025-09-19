@@ -5,6 +5,7 @@ import {
   testimonials,
   contactSubmissions,
   usageMetrics,
+  reminders,
   type User,
   type UpsertUser,
   type Project,
@@ -17,6 +18,8 @@ import {
   type InsertContactSubmission,
   type UsageMetrics,
   type SubscriptionPlan,
+  type Reminder,
+  type InsertReminder,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -56,6 +59,13 @@ export interface IStorage {
   createContactSubmission(submission: InsertContactSubmission): Promise<ContactSubmission>;
   getContactSubmissions(): Promise<ContactSubmission[]>;
   markContactSubmissionAsRead(id: string): Promise<void>;
+  
+  // Reminder operations
+  createReminder(reminder: InsertReminder): Promise<Reminder>;
+  getRemindersByProjectId(projectId: string): Promise<Reminder[]>;
+  getReminder(id: string): Promise<Reminder | undefined>;
+  updateReminder(id: string, updates: Partial<InsertReminder>): Promise<Reminder>;
+  deleteReminder(id: string): Promise<void>;
   
   // Subscription operations
   updateUserStripeInfo(userId: string, stripeInfo: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<User>;
@@ -399,6 +409,38 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return metrics;
+  }
+
+  // Reminder operations
+  async createReminder(reminder: InsertReminder): Promise<Reminder> {
+    const [newReminder] = await db.insert(reminders).values(reminder).returning();
+    return newReminder;
+  }
+
+  async getRemindersByProjectId(projectId: string): Promise<Reminder[]> {
+    return await db
+      .select()
+      .from(reminders)
+      .where(eq(reminders.projectId, projectId))
+      .orderBy(desc(reminders.scheduledAt));
+  }
+
+  async getReminder(id: string): Promise<Reminder | undefined> {
+    const [reminder] = await db.select().from(reminders).where(eq(reminders.id, id));
+    return reminder;
+  }
+
+  async updateReminder(id: string, updates: Partial<InsertReminder>): Promise<Reminder> {
+    const [reminder] = await db
+      .update(reminders)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(reminders.id, id))
+      .returning();
+    return reminder;
+  }
+
+  async deleteReminder(id: string): Promise<void> {
+    await db.delete(reminders).where(eq(reminders.id, id));
   }
 }
 

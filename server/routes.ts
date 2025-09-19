@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema, brandingSettingsSchema } from "@shared/schema";
+import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema, brandingSettingsSchema, insertTestimonialSchema, insertReminderSchema } from "@shared/schema";
 import { z } from "zod";
 import twilio from "twilio";
 import Stripe from "stripe";
@@ -11,6 +11,7 @@ import { parse } from "csv-parse/sync";
 import fs from "fs/promises";
 import path from "path";
 import { fileTypeFromBuffer } from "file-type";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 // Configure multer for CSV file uploads (store in memory for processing)
 const upload = multer({ 
@@ -366,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Remove undefined fields
       Object.keys(allowedUpdates).forEach(key => 
-        allowedUpdates[key] === undefined && delete allowedUpdates[key]
+        (allowedUpdates as any)[key] === undefined && delete (allowedUpdates as any)[key]
       );
       
       const updatedProject = await storage.updateProject(req.params.id, allowedUpdates);
@@ -454,7 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logoUrl = `/uploads/logos/${safeFilename}`;
 
       // Clean up old logo file if it exists
-      const currentBranding = project.brandingSettings || {};
+      const currentBranding = (project.brandingSettings as any) || {};
       if (currentBranding.logoUrl && currentBranding.logoUrl.startsWith('/uploads/logos/')) {
         const oldFilename = path.basename(currentBranding.logoUrl);
         const oldFilePath = path.join('uploads/logos', oldFilename);
@@ -634,6 +635,332 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting client:", error);
       res.status(500).json({ message: "Failed to delete client" });
+    }
+  });
+
+  // Video Upload API endpoints  
+  app.post("/api/video/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const { fileExtension, projectId } = req.body;
+      
+      if (!projectId) {
+        return res.status(400).json({ message: "projectId is required" });
+      }
+
+      // Verify project ownership
+      const project = await storage.getProject(projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate file extension
+      const allowedExtensions = ['mp4', 'webm', 'mov', 'avi'];
+      const ext = fileExtension || 'mp4';
+      if (!allowedExtensions.includes(ext.toLowerCase())) {
+        return res.status(400).json({ message: "Invalid file extension. Only video files are allowed." });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const result = await objectStorageService.getVideoUploadURL(ext);
+      
+      // Create secure binding token for this upload
+      const uploadToken = {
+        objectPath: result.objectPath,
+        userId: req.user.claims.sub,
+        projectId: projectId,
+        exp: Date.now() + (30 * 60 * 1000) // 30 minutes
+      };
+      
+      // Store token temporarily (in production, use Redis or database)
+      const tokenId = nanoid();
+      global.uploadTokens = global.uploadTokens || new Map();
+      global.uploadTokens.set(tokenId, uploadToken);
+      
+      res.json({ 
+        ...result,
+        uploadToken: tokenId
+      });
+    } catch (error) {
+      console.error("Error getting video upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  app.post("/api/testimonials/:id/video", isAuthenticated, async (req: any, res) => {
+    try {
+      const { objectPath, videoDuration, uploadToken } = req.body;
+      
+      if (!objectPath || !uploadToken) {
+        return res.status(400).json({ message: "objectPath and uploadToken are required" });
+      }
+      
+      // Update testimonial with video information
+      const testimonial = await storage.getTestimonial(req.params.id);
+      if (!testimonial) {
+        return res.status(404).json({ message: "Testimonial not found" });
+      }
+
+      // Verify project ownership
+      const project = await storage.getProject(testimonial.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Verify upload token and object path binding
+      global.uploadTokens = global.uploadTokens || new Map();
+      const tokenData = global.uploadTokens.get(uploadToken);
+      
+      if (!tokenData) {
+        return res.status(400).json({ message: "Invalid or expired upload token" });
+      }
+      
+      if (tokenData.exp < Date.now()) {
+        global.uploadTokens.delete(uploadToken);
+        return res.status(400).json({ message: "Upload token expired" });
+      }
+      
+      if (tokenData.objectPath !== objectPath || 
+          tokenData.userId !== req.user.claims.sub || 
+          tokenData.projectId !== testimonial.projectId) {
+        return res.status(403).json({ message: "Invalid token binding" });
+      }
+      
+      // Clean up used token
+      global.uploadTokens.delete(uploadToken);
+
+      const updatedTestimonial = await storage.updateTestimonial(req.params.id, {
+        type: "video",
+        videoUrl: objectPath,
+        videoStatus: "ready",
+        videoDuration: videoDuration,
+        videoProvider: "replit-storage",
+        storageKey: objectPath
+      });
+
+      res.json(updatedTestimonial);
+    } catch (error) {
+      console.error("Error updating testimonial with video:", error);
+      res.status(500).json({ message: "Failed to update testimonial" });
+    }
+  });
+
+  // Video serving endpoint (protected)
+  app.get("/objects/:objectPath(*)", isAuthenticated, async (req: any, res) => {
+    try {
+      const objectPath = `/objects/${req.params.objectPath}`;
+      
+      // Security: Verify user has access to this video
+      // Find the testimonial that uses this video
+      const testimonials = await storage.getAllTestimonialsByUserId(req.user.claims.sub);
+      const hasAccess = testimonials.some(testimonial => 
+        testimonial.videoUrl === req.params.objectPath || 
+        testimonial.storageKey === req.params.objectPath
+      );
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      await objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving video:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      res.status(500).json({ message: "Failed to serve video" });
+    }
+  });
+
+  // Reminder System API endpoints
+  app.get("/api/projects/:projectId/reminders", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const reminders = await storage.getRemindersByProjectId(req.params.projectId);
+      res.json(reminders);
+    } catch (error) {
+      console.error("Error fetching reminders:", error);
+      res.status(500).json({ message: "Failed to fetch reminders" });
+    }
+  });
+
+  app.post("/api/projects/:projectId/reminders", isAuthenticated, async (req: any, res) => {
+    try {
+      // Verify project ownership
+      const project = await storage.getProject(req.params.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate request body using Zod schema
+      const validationResult = insertReminderSchema.omit({ 
+        id: true, 
+        projectId: true, 
+        createdAt: true, 
+        updatedAt: true 
+      }).safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          message: "Invalid request data", 
+          errors: validationResult.error.errors 
+        });
+      }
+
+      const { clientId, channel, scheduledAt, templateKey } = validationResult.data;
+      
+      // Validate client belongs to project
+      const client = await storage.getClient(clientId);
+      if (!client || client.projectId !== req.params.projectId) {
+        return res.status(400).json({ message: "Invalid client for this project" });
+      }
+
+      // Check if client has opted out of reminders
+      if (client.reminderOptOut) {
+        return res.status(400).json({ message: "Client has opted out of reminders" });
+      }
+
+      const reminderData = {
+        projectId: req.params.projectId,
+        clientId,
+        channel,
+        scheduledAt: new Date(scheduledAt),
+        templateKey,
+        status: "pending" as const,
+        attemptNumber: 0,
+        metadata: {}
+      };
+
+      const reminder = await storage.createReminder(reminderData);
+      res.status(201).json(reminder);
+    } catch (error) {
+      console.error("Error creating reminder:", error);
+      res.status(500).json({ message: "Failed to create reminder" });
+    }
+  });
+
+  app.post("/api/reminders/:id/send", isAuthenticated, async (req: any, res) => {
+    try {
+      const reminder = await storage.getReminder(req.params.id);
+      if (!reminder) {
+        return res.status(404).json({ message: "Reminder not found" });
+      }
+
+      // Verify project ownership
+      const project = await storage.getProject(reminder.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Get client and project information for the reminder
+      const client = await storage.getClient(reminder.clientId);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+
+      // Generate testimonial submission URL
+      const testimonialUrl = `${req.protocol}://${req.get('host')}/submit/${project.id}`;
+      
+      const variables = {
+        clientName: client.name,
+        projectName: project.name,
+        testimonialUrl,
+        companyName: client.company || project.name
+      };
+
+      if (reminder.channel === "email") {
+        // For now, we'll mark as sent - email integration would go here
+        await storage.updateReminder(req.params.id, {
+          status: "sent",
+          attemptNumber: (reminder.attemptNumber || 0) + 1,
+          metadata: { sentAt: new Date().toISOString(), variables }
+        });
+        
+        res.json({ message: "Email reminder sent successfully", variables });
+      } else if (reminder.channel === "sms") {
+        if (!client.phone) {
+          return res.status(400).json({ message: "Client has no phone number for SMS" });
+        }
+
+        try {
+          const message = replaceTemplateVariables(
+            `Hi {{clientName}}! Would you mind sharing a quick testimonial about your experience with {{companyName}}? It would mean a lot: {{testimonialUrl}}`,
+            variables
+          );
+
+          await sendSMS(client.phone, message);
+          
+          await storage.updateReminder(req.params.id, {
+            status: "sent",
+            attemptNumber: (reminder.attemptNumber || 0) + 1,
+            metadata: { sentAt: new Date().toISOString(), phone: client.phone, message }
+          });
+
+          res.json({ message: "SMS reminder sent successfully" });
+        } catch (smsError) {
+          console.error("SMS sending failed:", smsError);
+          await storage.updateReminder(req.params.id, {
+            status: "failed",
+            attemptNumber: (reminder.attemptNumber || 0) + 1,
+            metadata: { failedAt: new Date().toISOString(), error: (smsError as Error).message }
+          });
+          
+          res.status(500).json({ message: "Failed to send SMS reminder" });
+        }
+      } else {
+        res.status(400).json({ message: "Unsupported reminder channel" });
+      }
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      res.status(500).json({ message: "Failed to send reminder" });
+    }
+  });
+
+  app.patch("/api/reminders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const reminder = await storage.getReminder(req.params.id);
+      if (!reminder) {
+        return res.status(404).json({ message: "Reminder not found" });
+      }
+
+      // Verify project ownership
+      const project = await storage.getProject(reminder.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedReminder = await storage.updateReminder(req.params.id, req.body);
+      res.json(updatedReminder);
+    } catch (error) {
+      console.error("Error updating reminder:", error);
+      res.status(500).json({ message: "Failed to update reminder" });
+    }
+  });
+
+  app.delete("/api/reminders/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const reminder = await storage.getReminder(req.params.id);
+      if (!reminder) {
+        return res.status(404).json({ message: "Reminder not found" });
+      }
+
+      // Verify project ownership  
+      const project = await storage.getProject(reminder.projectId);
+      if (!project || project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteReminder(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting reminder:", error);
+      res.status(500).json({ message: "Failed to delete reminder" });
     }
   });
 
