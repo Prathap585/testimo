@@ -21,6 +21,8 @@ import ClientsList from "@/components/clients-list";
 import TestimonialsList from "@/components/testimonials-list";
 import EmailSettingsForm from "@/components/email-settings-form";
 import EmbedCodeGenerator from "@/components/embed-code-generator";
+import ReminderSettingsForm from "@/components/reminder-settings-form";
+import RemindersDashboard from "@/components/reminders-dashboard";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 
@@ -208,12 +210,15 @@ export default function ProjectDetails() {
 
           {/* Main Content Tabs */}
           <Tabs defaultValue="clients" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3" data-testid="project-tabs">
+            <TabsList className="grid w-full grid-cols-4" data-testid="project-tabs">
               <TabsTrigger value="clients" data-testid="tab-clients">
                 Clients ({clientCount})
               </TabsTrigger>
               <TabsTrigger value="testimonials" data-testid="tab-testimonials">
                 Testimonials ({stats.total})
+              </TabsTrigger>
+              <TabsTrigger value="reminders" data-testid="tab-reminders">
+                Reminders
               </TabsTrigger>
               <TabsTrigger value="settings" data-testid="tab-settings">
                 Settings
@@ -228,8 +233,13 @@ export default function ProjectDetails() {
               <TestimonialsList projectId={id} />
             </TabsContent>
 
+            <TabsContent value="reminders" className="space-y-6">
+              <RemindersDashboard projectId={id} />
+            </TabsContent>
+
             <TabsContent value="settings" className="space-y-6">
               <EmailSettingsForm project={project} />
+              <ReminderSettingsForm project={project} />
               <EmbedCodeGenerator project={project} />
             </TabsContent>
           </Tabs>

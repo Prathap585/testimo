@@ -7,13 +7,14 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload, Bell } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Client } from "@shared/schema";
 import ClientFormModal from "./client-form-modal";
 import CsvImportModal from "./csv-import-modal";
+import ReminderFormModal from "./reminder-form-modal";
 
 interface ClientsListProps {
   projectId: string;
@@ -22,7 +23,9 @@ interface ClientsListProps {
 export default function ClientsList({ projectId }: ClientsListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
+  const [reminderClientId, setReminderClientId] = useState<string | undefined>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -53,6 +56,11 @@ export default function ClientsList({ projectId }: ClientsListProps) {
 
   const handleEditClient = (client: Client) => {
     setEditingClient(client);
+  };
+
+  const handleScheduleReminder = (clientId: string) => {
+    setReminderClientId(clientId);
+    setShowReminderModal(true);
   };
 
   const handleDeleteClient = async (clientId: string) => {
@@ -185,6 +193,12 @@ export default function ClientsList({ projectId }: ClientsListProps) {
           onOpenChange={setShowImportModal}
           projectId={projectId}
         />
+        <ReminderFormModal
+          open={showReminderModal}
+          onOpenChange={setShowReminderModal}
+          projectId={projectId}
+          preselectedClientId={reminderClientId}
+        />
       </>
     );
   }
@@ -248,6 +262,13 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                       {client.isContacted ? "SMS Sent" : "Send SMS"}
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem 
+                    onClick={() => handleScheduleReminder(client.id)}
+                    data-testid={`schedule-reminder-${client.id}`}
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Schedule Reminder
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="text-destructive"
                     onClick={() => handleDeleteClient(client.id)}
@@ -359,6 +380,13 @@ export default function ClientsList({ projectId }: ClientsListProps) {
         open={showImportModal} 
         onOpenChange={setShowImportModal}
         projectId={projectId}
+      />
+      
+      <ReminderFormModal
+        open={showReminderModal}
+        onOpenChange={setShowReminderModal}
+        projectId={projectId}
+        preselectedClientId={reminderClientId}
       />
     </>
   );
