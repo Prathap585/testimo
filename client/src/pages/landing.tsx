@@ -41,24 +41,48 @@ export default function Landing() {
             <Card className="max-w-4xl mx-auto shadow-xl border border-border">
               <CardContent className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-muted/50 rounded-xl p-6" data-testid={`testimonial-preview-${i}`}>
-                      <div className="flex items-center mb-4">
-                        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                          <Star className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="ml-3">
-                          <div className="w-20 h-3 bg-muted rounded"></div>
-                          <div className="w-16 h-2 bg-muted/70 rounded mt-1"></div>
-                        </div>
+                  <div className="bg-muted/50 rounded-xl p-6" data-testid="testimonial-preview-1">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                        <Star className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-2 bg-muted rounded"></div>
-                        <div className="w-4/5 h-2 bg-muted rounded"></div>
-                        <div className="w-full h-2 bg-muted rounded"></div>
+                      <div className="ml-3">
+                        <div className="font-medium text-sm">Sample Client</div>
+                        <div className="text-xs text-muted-foreground">CEO</div>
                       </div>
                     </div>
-                  ))}
+                    <div className="text-sm text-muted-foreground">
+                      "This platform made collecting testimonials so much easier for our team."
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-xl p-6" data-testid="testimonial-preview-2">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                        <Star className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="ml-3">
+                        <div className="font-medium text-sm">Demo User</div>
+                        <div className="text-xs text-muted-foreground">Freelancer</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      "The automated reminders saved me hours of manual follow-up work."
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-xl p-6" data-testid="testimonial-preview-3">
+                    <div className="flex items-center mb-4">
+                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                        <Star className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="ml-3">
+                        <div className="font-medium text-sm">Example Agency</div>
+                        <div className="text-xs text-muted-foreground">Marketing</div>
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      "Perfect solution for managing testimonials across multiple clients."
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
