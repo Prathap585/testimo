@@ -87,7 +87,7 @@ export const testimonials = pgTable("testimonials", {
   clientEmail: varchar("client_email").notNull(),
   clientTitle: varchar("client_title"),
   clientCompany: varchar("client_company"),
-  content: text("content").notNull(),
+  content: text("content"),
   rating: integer("rating").notNull(), // 1-5 stars
   isApproved: boolean("is_approved").default(false),
   isPublished: boolean("is_published").default(false),

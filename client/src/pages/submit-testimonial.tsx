@@ -1,11 +1,12 @@
 import { useParams } from "wouter";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Star, Send, CheckCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Star, Send, CheckCircle, Video, Upload, X } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -17,6 +18,12 @@ export default function SubmitTestimonial() {
   const [submitted, setSubmitted] = useState(false);
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [testimonialType, setTestimonialType] = useState<"text" | "video">("text");
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState({
     clientName: "",
@@ -37,16 +44,79 @@ export default function SubmitTestimonial() {
 
   const submitTestimonialMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", `/api/projects/${id}/testimonials`, data);
+      let testimonialData = { ...data };
+      
+      // Handle video upload if video testimonial
+      if (testimonialType === "video" && selectedVideo) {
+        try {
+          setIsUploadingVideo(true);
+          setVideoUploadProgress(10);
+          
+          // Get upload URL
+          const uploadRes = await apiRequest("POST", "/api/video/upload-url", {
+            fileExtension: selectedVideo.name.split('.').pop()?.toLowerCase() || 'mp4',
+            projectId: id
+          });
+          const uploadResponse = await uploadRes.json();
+          
+          setVideoUploadProgress(30);
+          
+          // Upload video to object storage
+          const uploadResult = await fetch(uploadResponse.uploadUrl, {
+            method: 'PUT',
+            body: selectedVideo,
+            headers: {
+              'Content-Type': selectedVideo.type,
+            },
+          });
+          
+          if (!uploadResult.ok) {
+            throw new Error('Video upload failed');
+          }
+          
+          setVideoUploadProgress(70);
+          
+          // Submit testimonial first
+          const testimonialRes = await apiRequest("POST", `/api/projects/${id}/testimonials`, {
+            ...testimonialData,
+            type: "video"
+          });
+          const testimonial = await testimonialRes.json();
+          
+          setVideoUploadProgress(90);
+          
+          // Update testimonial with video metadata
+          await apiRequest("POST", `/api/testimonials/${testimonial.id}/video`, {
+            objectPath: uploadResponse.objectPath,
+            videoDuration: null,
+            uploadToken: uploadResponse.uploadToken
+          });
+          
+          setVideoUploadProgress(100);
+          return testimonial;
+        } catch (error) {
+          setIsUploadingVideo(false);
+          setVideoUploadProgress(0);
+          throw error;
+        }
+      }
+      
+      return await apiRequest("POST", `/api/projects/${id}/testimonials`, testimonialData);
     },
     onSuccess: () => {
       setSubmitted(true);
+      setIsUploadingVideo(false);
+      setVideoUploadProgress(0);
       toast({
         title: "Testimonial submitted!",
-        description: "Thank you for your feedback. It will be reviewed and published soon.",
+        description: testimonialType === "video" 
+          ? "Thank you for your video testimonial. It will be reviewed and published soon."
+          : "Thank you for your feedback. It will be reviewed and published soon.",
       });
     },
     onError: (error) => {
+      setIsUploadingVideo(false);
+      setVideoUploadProgress(0);
       toast({
         title: "Error",
         description: "Failed to submit testimonial. Please try again.",
@@ -70,13 +140,72 @@ export default function SubmitTestimonial() {
     }));
   };
 
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a video file (MP4, WebM, MOV, or AVI).",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 100MB)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: "Please select a video file smaller than 100MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedVideo(file);
+      setVideoPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const removeVideo = () => {
+    setSelectedVideo(null);
+    if (videoPreviewUrl) {
+      URL.revokeObjectURL(videoPreviewUrl);
+      setVideoPreviewUrl(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientName.trim() || !formData.clientEmail.trim() || !formData.content.trim()) {
+    if (!formData.clientName.trim() || !formData.clientEmail.trim()) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (testimonialType === "text" && !formData.content.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide your testimonial content.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (testimonialType === "video" && !selectedVideo) {
+      toast({
+        title: "Error",
+        description: "Please select a video file for your testimonial.",
         variant: "destructive",
       });
       return;
@@ -96,7 +225,7 @@ export default function SubmitTestimonial() {
       clientEmail: formData.clientEmail.trim(),
       clientTitle: formData.clientTitle.trim() || null,
       clientCompany: formData.clientCompany.trim() || null,
-      content: formData.content.trim(),
+      content: testimonialType === "text" ? formData.content.trim() : "Video testimonial",
       rating,
       isPublished: false,
       projectId: id,
@@ -158,6 +287,134 @@ export default function SubmitTestimonial() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <Tabs value={testimonialType} onValueChange={(value) => setTestimonialType(value as "text" | "video")} className="mb-6">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="text" data-testid="tab-text-testimonial">
+                    Written Testimonial
+                  </TabsTrigger>
+                  <TabsTrigger value="video" data-testid="tab-video-testimonial">
+                    <Video className="w-4 h-4 mr-2" />
+                    Video Testimonial
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="text" className="space-y-6">
+                  <div>
+                    <Label htmlFor="content" className="block text-sm font-medium text-foreground mb-2">
+                      Your Testimonial *
+                    </Label>
+                    <Textarea
+                      id="content"
+                      name="content"
+                      rows={6}
+                      value={formData.content}
+                      onChange={handleInputChange}
+                      required={testimonialType === "text"}
+                      placeholder="Share your experience working with us. What did you like most? How did we help you achieve your goals?"
+                      data-testid="textarea-testimonial-content"
+                    />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Tell us about your experience, results achieved, and what you valued most about working together.
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="video" className="space-y-6">
+                  <div>
+                    <Label className="block text-sm font-medium text-foreground mb-2">
+                      Video Testimonial *
+                    </Label>
+                    
+                    {!selectedVideo ? (
+                      <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                        <Video className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <div className="space-y-2">
+                          <p className="text-lg font-medium">Upload your video testimonial</p>
+                          <p className="text-sm text-muted-foreground">
+                            Share your experience in a personal video message
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Supported formats: MP4, WebM, MOV, AVI (max 100MB)
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-4"
+                          onClick={() => fileInputRef.current?.click()}
+                          data-testid="button-select-video"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Select Video File
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleVideoSelect}
+                          className="hidden"
+                          data-testid="input-video-file"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-muted rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <Video className="h-5 w-5 text-primary" />
+                              <div>
+                                <p className="font-medium text-sm">{selectedVideo.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {(selectedVideo.size / (1024 * 1024)).toFixed(1)} MB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={removeVideo}
+                              data-testid="button-remove-video"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          
+                          {videoPreviewUrl && (
+                            <video
+                              src={videoPreviewUrl}
+                              controls
+                              className="w-full max-h-64 rounded border"
+                              data-testid="video-preview"
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          )}
+                        </div>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          data-testid="button-change-video"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          Change Video
+                        </Button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleVideoSelect}
+                          className="hidden"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="clientName" className="block text-sm font-medium text-foreground mb-2">
@@ -254,41 +511,156 @@ export default function SubmitTestimonial() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="content" className="block text-sm font-medium text-foreground mb-2">
-                  Your Testimonial *
-                </Label>
-                <Textarea
-                  id="content"
-                  name="content"
-                  rows={6}
-                  value={formData.content}
-                  onChange={handleInputChange}
-                  required
-                  placeholder="Share your experience working with us. What did you like most? How did we help you achieve your goals?"
-                  data-testid="textarea-testimonial-content"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Tell us about your experience, results achieved, and what you valued most about working together.
-                </p>
-              </div>
+              <TabsContent value="text" className="space-y-6">
+                <div>
+                  <Label htmlFor="content" className="block text-sm font-medium text-foreground mb-2">
+                    Your Testimonial *
+                  </Label>
+                  <Textarea
+                    id="content"
+                    name="content"
+                    rows={6}
+                    value={formData.content}
+                    onChange={handleInputChange}
+                    required={testimonialType === "text"}
+                    placeholder="Share your experience working with us. What did you like most? How did we help you achieve your goals?"
+                    data-testid="textarea-testimonial-content"
+                  />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Tell us about your experience, results achieved, and what you valued most about working together.
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="video" className="space-y-6">
+                <div>
+                  <Label className="block text-sm font-medium text-foreground mb-2">
+                    Video Testimonial *
+                  </Label>
+                  
+                  {!selectedVideo ? (
+                    <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                      <Video className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <div className="space-y-2">
+                        <p className="text-lg font-medium">Upload your video testimonial</p>
+                        <p className="text-sm text-muted-foreground">
+                          Share your experience in a personal video message
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Supported formats: MP4, WebM, MOV, AVI (max 100MB)
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="button-select-video"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Select Video File
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoSelect}
+                        className="hidden"
+                        data-testid="input-video-file"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-muted rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <Video className="h-5 w-5 text-primary" />
+                            <div>
+                              <p className="font-medium text-sm">{selectedVideo.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(selectedVideo.size / (1024 * 1024)).toFixed(1)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeVideo}
+                            data-testid="button-remove-video"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        
+                        {videoPreviewUrl && (
+                          <video
+                            src={videoPreviewUrl}
+                            controls
+                            className="w-full max-h-64 rounded border"
+                            data-testid="video-preview"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        )}
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="button-change-video"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change Video
+                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoSelect}
+                        className="hidden"
+                      />
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {isUploadingVideo && testimonialType === "video" && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Uploading video...</span>
+                    <span>{videoUploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div 
+                      className="bg-primary h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${videoUploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <Button
                 type="submit"
-                disabled={submitTestimonialMutation.isPending}
+                disabled={submitTestimonialMutation.isPending || isUploadingVideo}
                 className="w-full"
                 size="lg"
                 data-testid="button-submit-testimonial"
               >
-                {submitTestimonialMutation.isPending ? (
+                {isUploadingVideo ? (
+                  "Uploading video..."
+                ) : submitTestimonialMutation.isPending ? (
                   "Submitting..."
                 ) : (
                   <>
                     <Send className="w-4 h-4 mr-2" />
-                    Submit Testimonial
+                    Submit {testimonialType === "video" ? "Video " : ""}Testimonial
                   </>
                 )}
               </Button>
+              </Tabs>
             </form>
           </CardContent>
         </Card>
