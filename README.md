@@ -4,16 +4,29 @@ A comprehensive testimonial collection and management platform built with React,
 
 ## 🚀 Features
 
-- **User Authentication** - Secure login with Replit OAuth
-- **Project Management** - Create and manage testimonial collection campaigns
-- **Client Management** - Add and track clients for each project
-- **Testimonial Collection** - Public forms for clients to submit testimonials
+### Core Automation
+- **Set & Forget Workflow** - Mark client work complete → automatic testimonial request → automated follow-ups until received
+- **Smart Reminder System** - Intelligent scheduling with quiet hours, timezone support, and recurring reminders
+- **Work Status Tracking** - Three-stage workflow: Pending → In Progress → Completed
+- **Automatic Triggering** - Testimonial requests sent instantly when work is marked complete
+
+### Testimonial Management
+- **Project Organization** - Create and manage multiple testimonial collection campaigns
+- **Client Management** - Add clients, track work status, and monitor testimonial collection
 - **Approval Workflow** - Review and approve testimonials before publishing
-- **Public Display** - Beautiful testimonial walls for public viewing
-- **Embeddable Widgets** - Iframe and JavaScript widgets for external websites
+- **Overall Testimonial Wall** - Unified view of all testimonials across projects with embeddable widgets
+- **Public Display** - Beautiful testimonial walls for individual projects and overall collection
+
+### Communication & Outreach
 - **Email & SMS Outreach** - Send testimonial requests via email and SMS
 - **Customizable Templates** - Custom email and SMS templates for client outreach
-- **Dashboard Analytics** - Track response rates and testimonial metrics
+- **Bulk Operations** - CSV import for client data and bulk testimonial requests
+
+### Technical Features
+- **User Authentication** - Secure login with Replit OAuth
+- **Embeddable Widgets** - Iframe widgets for external websites with theme and layout options
+- **Mobile Optimized** - Responsive design for all devices
+- **Real-time Updates** - Live status tracking and notifications
 
 ## 🛠 Tech Stack
 
@@ -61,28 +74,33 @@ npm install
 
 ### 3. Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+**For Local Development**, create a `.env.local` file:
 
 ```env
+# Essential for local development
+REPLIT_DOMAINS=localhost:5000
+NODE_ENV=development
+
 # Database
 DATABASE_URL=postgresql://username:password@localhost:5432/testimo
 
-# Session Secret
+# Session Secret (generate a secure random string)
 SESSION_SECRET=your-super-secret-session-key
 
-# Replit OAuth (if using Replit authentication)
-ISSUER_URL=https://replit.com
-CLIENT_ID=your-replit-client-id
-CLIENT_SECRET=your-replit-client-secret
+# Replit OAuth (automatically configured on Replit)
+REPL_ID=your-replit-app-id
+ISSUER_URL=https://replit.com/oidc
 
-# Twilio SMS (optional - for SMS testimonial requests)
+# Optional: Twilio SMS (for SMS testimonial requests)
 TWILIO_ACCOUNT_SID=your-twilio-account-sid
 TWILIO_AUTH_TOKEN=your-twilio-auth-token
 TWILIO_PHONE_NUMBER=your-twilio-phone-number
-
-# Node Environment
-NODE_ENV=development
 ```
+
+**Important Notes:**
+- `REPLIT_DOMAINS` is automatically provided on Replit but required for local development
+- The app automatically detects local development and uses `localhost:5000` if not set
+- `REPL_ID` and `ISSUER_URL` are automatically configured on Replit platform
 
 ### 4. Database Setup
 
@@ -152,7 +170,7 @@ Testimonial collection campaigns created by users.
 ```
 
 #### `clients`
-Client contacts associated with projects.
+Client contacts associated with projects with work status tracking.
 ```sql
 - id (varchar, primary key, UUID)
 - project_id (varchar, foreign key → projects.id)
@@ -160,6 +178,7 @@ Client contacts associated with projects.
 - email (varchar, not null)
 - phone (varchar, optional)
 - company (varchar)
+- work_status (enum: 'pending', 'in_progress', 'completed', default: 'pending')
 - is_contacted (boolean, default: false)
 - created_at (timestamp)
 - updated_at (timestamp)
@@ -262,16 +281,18 @@ testimo/
 - `GET /api/clients` - Get all clients for user
 - `GET /api/projects/:id/clients` - Get clients for project
 - `POST /api/clients` - Add new client
-- `PUT /api/clients/:id` - Update client
+- `PATCH /api/clients/:id` - Update client (triggers auto-request when work marked complete)
 - `DELETE /api/clients/:id` - Delete client
-- `POST /api/clients/:id/send-testimonial-request` - Send email request
-- `POST /api/clients/:id/send-sms-request` - Send SMS request
+- `POST /api/clients/:id/send-testimonial-request` - Send email request manually
+- `POST /api/clients/:id/send-sms-request` - Send SMS request manually
 
 ### Testimonials
 - `GET /api/testimonials` - Get user's testimonials
+- `GET /api/testimonials/wall` - Get testimonial wall for authenticated user
+- `GET /api/testimonials/wall/:userId/embed` - Public embeddable testimonial wall
 - `GET /api/projects/:id/testimonials` - Get testimonials for project
 - `POST /api/testimonials` - Submit new testimonial (public)
-- `PUT /api/testimonials/:id` - Update testimonial (approve/publish)
+- `PATCH /api/testimonials/:id` - Update testimonial (approve/publish)
 - `DELETE /api/testimonials/:id` - Delete testimonial
 
 ### Public APIs
@@ -308,6 +329,67 @@ Example embed code:
 <iframe src="https://your-domain.com/embed/project-id?theme=light&layout=grid&limit=6" 
         width="100%" height="600" frameborder="0"></iframe>
 ```
+
+## 🎯 Key Workflows
+
+### Set & Forget Testimonial Collection
+1. **Add Client** - Enter client details and assign to project
+2. **Work in Progress** - Update client status to "In Progress"
+3. **Mark Complete** - Change status to "Completed" → Automatic testimonial request sent
+4. **Automated Follow-ups** - System sends reminders based on project settings until testimonial received
+5. **Review & Approve** - Testimonials appear in dashboard for approval
+6. **Publish** - Approved testimonials automatically appear on testimonial wall
+
+### Manual Testimonial Requests
+- Send individual email or SMS requests anytime
+- Schedule custom reminders for specific clients
+- Bulk import clients and send batch requests
+
+### Testimonial Wall Management
+- View unified testimonial wall across all projects
+- Generate embeddable widgets for external websites
+- Customize layout, theme, and display limits
+- Public sharing without exposing sensitive data
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+#### `REPLIT_DOMAINS not provided` Error
+**Problem**: Error when running locally
+**Solution**: The app automatically handles this in development mode. Ensure you have:
+```env
+NODE_ENV=development
+REPLIT_DOMAINS=localhost:5000  # Optional, auto-set if missing
+```
+
+#### Database Connection Issues
+1. Verify `DATABASE_URL` format is correct
+2. Ensure PostgreSQL is running locally
+3. Run `npm run db:push` to sync schema
+4. Use `npm run db:push --force` if there are warnings
+
+#### Authentication Not Working
+1. Verify `REPL_ID` matches your Replit app ID
+2. Check that `SESSION_SECRET` is set and secure
+3. Ensure you're accessing the app via the correct domain
+
+## 📝 Recent Updates
+
+### December 2024 - Major Feature Updates
+- ✅ **Set & Forget Workflow**: Complete automation from work completion to testimonial collection
+- ✅ **Overall Testimonial Wall**: Unified view with embeddable widgets across all projects
+- ✅ **Work Status Tracking**: Three-stage client workflow with automatic triggering
+- ✅ **Smart Reminders**: Recurring reminders with timezone and quiet hour support
+- ✅ **Local Development Fix**: Automatic REPLIT_DOMAINS handling for local development
+- ✅ **UI Improvements**: Replaced placeholder content with realistic samples
+- ✅ **GitHub Integration**: Full repository setup and deployment guidance
+
+### Technical Improvements
+- ✅ **Enhanced Authentication**: Smart environment detection for Replit vs local development
+- ✅ **Database Optimizations**: Improved schema with work status and reminder metadata
+- ✅ **API Enhancements**: New endpoints for testimonial wall and automated workflows
+- ✅ **Mobile Responsiveness**: Improved mobile experience across all pages
 
 ## 🚀 Deployment
 
