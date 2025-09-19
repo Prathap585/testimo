@@ -147,7 +147,7 @@ export default function ReminderFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" data-testid="reminder-form-modal">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto" data-testid="reminder-form-modal">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
