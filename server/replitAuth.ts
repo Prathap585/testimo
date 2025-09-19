@@ -9,7 +9,12 @@ import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
 if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+  if (process.env.NODE_ENV === 'development') {
+    console.warn("⚠️  REPLIT_DOMAINS not found. Using localhost:5000 for local development.");
+    process.env.REPLIT_DOMAINS = "localhost:5000";
+  } else {
+    throw new Error("Environment variable REPLIT_DOMAINS not provided");
+  }
 }
 
 const getOidcConfig = memoize(
