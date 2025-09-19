@@ -19,6 +19,11 @@ if (!process.env.REPLIT_DOMAINS) {
 
 const getOidcConfig = memoize(
   async () => {
+    // Skip OAuth discovery in local development
+    if (process.env.NODE_ENV === 'development' && !process.env.REPL_ID) {
+      console.log("🔧 Local development mode - skipping OAuth discovery");
+      return null;
+    }
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
       process.env.REPL_ID!
@@ -80,6 +85,35 @@ export async function setupAuth(app: Express) {
 
   const config = await getOidcConfig();
 
+  // Handle local development without OAuth
+  if (!config) {
+    console.log("🔧 Setting up local development auth endpoints");
+    
+    passport.serializeUser((user: Express.User, cb) => cb(null, user));
+    passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+    // Mock auth endpoints for local development
+    app.get("/api/login", (req, res) => {
+      res.status(501).json({ 
+        message: "Authentication not available in local development mode",
+        suggestion: "Deploy to Replit for full authentication functionality"
+      });
+    });
+
+    app.get("/api/callback", (req, res) => {
+      res.redirect("/?auth=local");
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/");
+      });
+    });
+    
+    return;
+  }
+
+  // Production OAuth setup
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
@@ -134,6 +168,12 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  // Skip authentication in local development
+  if (process.env.NODE_ENV === 'development' && !process.env.REPL_ID) {
+    console.log("🔧 Skipping authentication check in local development");
+    return next();
+  }
+
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {
@@ -153,6 +193,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   try {
     const config = await getOidcConfig();
+    if (!config) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
     return next();

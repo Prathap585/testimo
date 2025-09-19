@@ -1,0 +1,170 @@
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[dotenv@17.2.2] injecting env (9) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+⚠️  REPLIT_DOMAINS not found. Using localhost:5000 for local development.
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+(node:96230) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+file:///Users/prathapreddynarala/Documents/workspace/testimo/node_modules/openid-client/build/index.js:116
+    return new ClientError(msg, { cause, code });
+           ^
+
+ClientError: unexpected HTTP response status code
+    at e (/Users/prathapreddynarala/Documents/workspace/testimo/node_modules/openid-client/src/index.ts:913:10)
+    at errorHandler (/Users/prathapreddynarala/Documents/workspace/testimo/node_modules/openid-client/src/index.ts:934:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at performDiscovery (/Users/prathapreddynarala/Documents/workspace/testimo/node_modules/openid-client/src/index.ts:1360:14)
+    at Module.discovery (/Users/prathapreddynarala/Documents/workspace/testimo/node_modules/openid-client/src/index.ts:1281:14)
+    at memoize.maxAge (/Users/prathapreddynarala/Documents/workspace/testimo/server/replitAuth.ts:22:12)
+    at setupAuth (/Users/prathapreddynarala/Documents/workspace/testimo/server/replitAuth.ts:81:18)
+    at registerRoutes (/Users/prathapreddynarala/Documents/workspace/testimo/server/routes.ts:306:3)
+    at <anonymous> (/Users/prathapreddynarala/Documents/workspace/testimo/server/index.ts:46:18) {
+  code: 'OAUTH_RESPONSE_IS_NOT_CONFORM',
+  [cause]: Response {
+    [Symbol(realm)]: null,
+    [Symbol(state)]: {
+      aborted: false,
+      rangeRequested: false,
+      timingAllowPassed: true,
+      requestIncludesCredentials: true,
+      type: 'default',
+      status: 404,
+      timingInfo: {
+        startTime: 4181.341205,
+        redirectStartTime: 0,
+        redirectEndTime: 0,
+        postRedirectStartTime: 4181.341205,
+        finalServiceWorkerStartTime: 0,
+        finalNetworkResponseStartTime: 0,
+        finalNetworkRequestStartTime: 0,
+        endTime: 0,
+        encodedBodySize: 0,
+        decodedBodySize: 0,
+        finalConnectionTimingInfo: null
+      },
+      cacheState: '',
+      statusText: 'Not Found',
+      headersList: HeadersList {
+        cookies: [
+          '__cf_bm=gvRcjd2iJUgLa9ILFN2QIfhBjgh0iaKns6UNbOQNihQ-1758319981-1.0.1.1-f4Im817apkPRY29rc6QW059w7pobf_0_GA9bp9En0BGIoO5Fx_dcGj4ew9EoGTr77j1rwvewoLGQb3i5nrpG0DeYu.q3dX9N54bvpcpcDVA; path=/; expires=Fri, 19-Sep-25 22:43:01 GMT; domain=.replit.com; HttpOnly; Secure; SameSite=None',
+          '_cfuvid=O8mIvcXd9sto0glI5CFRIBOHjIDlwVB1AdtIuJG0kCo-1758319981567-0.0.1.1-604800000; path=/; domain=.replit.com; HttpOnly; Secure; SameSite=None'
+        ],
+        [Symbol(headers map)]: Map(19) {
+          'date' => { name: 'Date', value: 'Fri, 19 Sep 2025 22:13:01 GMT' },
+          'content-type' => { name: 'Content-Type', value: 'text/html; charset=utf-8' },
+          'transfer-encoding' => { name: 'Transfer-Encoding', value: 'chunked' },
+          'connection' => { name: 'Connection', value: 'keep-alive' },
+          'content-encoding' => { name: 'Content-Encoding', value: 'br' },
+          'x-powered-by' => { name: 'X-Powered-By', value: 'Next.js' },
+          'cache-control' => {
+            name: 'Cache-Control',
+            value: 'private, no-cache, no-store, max-age=0, must-revalidate'
+          },
+          'x-frame-options' => { name: 'X-Frame-Options', value: 'DENY' },
+          'content-security-policy-report-only' => {
+            name: 'Content-Security-Policy-Report-Only',
+            value: "default-src * 'unsafe-eval' 'unsafe-inline' 'unsafe-dynamic' data: filesystem: about: blob: ws: wss: report-uri https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e; report-to csp-endpoint;"
+          },
+          'report-to' => {
+            name: 'Report-To',
+            value: '{"group":"csp-endpoint","max_age":10886400,"endpoints":[{"url":"https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e"}],"include_subdomains":true}'
+          },
+          'reporting-endpoints' => {
+            name: 'Reporting-Endpoints',
+            value: 'csp-endpoint="https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e"'
+          },
+          'x-content-type-options' => { name: 'X-Content-Type-Options', value: 'nosniff' },
+          'vary' => { name: 'Vary', value: 'Accept-Encoding' },
+          'strict-transport-security' => {
+            name: 'Strict-Transport-Security',
+            value: 'max-age=31536000; preload'
+          },
+          'cf-cache-status' => { name: 'cf-cache-status', value: 'DYNAMIC' },
+          'set-cookie' => {
+            name: 'Set-Cookie',
+            value: '__cf_bm=gvRcjd2iJUgLa9ILFN2QIfhBjgh0iaKns6UNbOQNihQ-1758319981-1.0.1.1-f4Im817apkPRY29rc6QW059w7pobf_0_GA9bp9En0BGIoO5Fx_dcGj4ew9EoGTr77j1rwvewoLGQb3i5nrpG0DeYu.q3dX9N54bvpcpcDVA; path=/; expires=Fri, 19-Sep-25 22:43:01 GMT; domain=.replit.com; HttpOnly; Secure; SameSite=None, _cfuvid=O8mIvcXd9sto0glI5CFRIBOHjIDlwVB1AdtIuJG0kCo-1758319981567-0.0.1.1-604800000; path=/; domain=.replit.com; HttpOnly; Secure; SameSite=None'
+          },
+          'server' => { name: 'Server', value: 'cloudflare' },
+          'cf-ray' => { name: 'CF-RAY', value: '981c6d89fcfd5d13-IAD' },
+          'alt-svc' => { name: 'alt-svc', value: 'h3=":443"; ma=86400' }
+        },
+        [Symbol(headers map sorted)]: null
+      },
+      urlList: [ URL {} ],
+      body: {
+        stream: ReadableStream {
+          constructor: [class ReadableStream] { from: [Function: from] },
+          [Symbol(kType)]: 'ReadableStream',
+          [Symbol(kState)]: [Object: null prototype] {
+            disturbed: false,
+            reader: undefined,
+            state: 'readable',
+            storedError: undefined,
+            transfer: [Object: null prototype],
+            controller: [ReadableStreamDefaultController]
+          },
+          [Symbol(nodejs.webstream.isClosedPromise)]: {
+            promise: [Promise],
+            resolve: [Function (anonymous)],
+            reject: [Function (anonymous)]
+          },
+          [Symbol(nodejs.webstream.controllerErrorFunction)]: [Function: bound error]
+        }
+      }
+    },
+    [Symbol(headers)]: Headers {
+      [Symbol(guard)]: 'immutable',
+      [Symbol(headers list)]: HeadersList {
+        cookies: [
+          '__cf_bm=gvRcjd2iJUgLa9ILFN2QIfhBjgh0iaKns6UNbOQNihQ-1758319981-1.0.1.1-f4Im817apkPRY29rc6QW059w7pobf_0_GA9bp9En0BGIoO5Fx_dcGj4ew9EoGTr77j1rwvewoLGQb3i5nrpG0DeYu.q3dX9N54bvpcpcDVA; path=/; expires=Fri, 19-Sep-25 22:43:01 GMT; domain=.replit.com; HttpOnly; Secure; SameSite=None',
+          '_cfuvid=O8mIvcXd9sto0glI5CFRIBOHjIDlwVB1AdtIuJG0kCo-1758319981567-0.0.1.1-604800000; path=/; domain=.replit.com; HttpOnly; Secure; SameSite=None'
+        ],
+        [Symbol(headers map)]: Map(19) {
+          'date' => { name: 'Date', value: 'Fri, 19 Sep 2025 22:13:01 GMT' },
+          'content-type' => { name: 'Content-Type', value: 'text/html; charset=utf-8' },
+          'transfer-encoding' => { name: 'Transfer-Encoding', value: 'chunked' },
+          'connection' => { name: 'Connection', value: 'keep-alive' },
+          'content-encoding' => { name: 'Content-Encoding', value: 'br' },
+          'x-powered-by' => { name: 'X-Powered-By', value: 'Next.js' },
+          'cache-control' => {
+            name: 'Cache-Control',
+            value: 'private, no-cache, no-store, max-age=0, must-revalidate'
+          },
+          'x-frame-options' => { name: 'X-Frame-Options', value: 'DENY' },
+          'content-security-policy-report-only' => {
+            name: 'Content-Security-Policy-Report-Only',
+            value: "default-src * 'unsafe-eval' 'unsafe-inline' 'unsafe-dynamic' data: filesystem: about: blob: ws: wss: report-uri https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e; report-to csp-endpoint;"
+          },
+          'report-to' => {
+            name: 'Report-To',
+            value: '{"group":"csp-endpoint","max_age":10886400,"endpoints":[{"url":"https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e"}],"include_subdomains":true}'
+          },
+          'reporting-endpoints' => {
+            name: 'Reporting-Endpoints',
+            value: 'csp-endpoint="https://o1151714.ingest.us.sentry.io/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e"'
+          },
+          'x-content-type-options' => { name: 'X-Content-Type-Options', value: 'nosniff' },
+          'vary' => { name: 'Vary', value: 'Accept-Encoding' },
+          'strict-transport-security' => {
+            name: 'Strict-Transport-Security',
+            value: 'max-age=31536000; preload'
+          },
+          'cf-cache-status' => { name: 'cf-cache-status', value: 'DYNAMIC' },
+          'set-cookie' => {
+            name: 'Set-Cookie',
+            value: '__cf_bm=gvRcjd2iJUgLa9ILFN2QIfhBjgh0iaKns6UNbOQNihQ-1758319981-1.0.1.1-f4Im817apkPRY29rc6QW059w7pobf_0_GA9bp9En0BGIoO5Fx_dcGj4ew9EoGTr77j1rwvewoLGQb3i5nrpG0DeYu.q3dX9N54bvpcpcDVA; path=/; expires=Fri, 19-Sep-25 22:43:01 GMT; domain=.replit.com; HttpOnly; Secure; SameSite=None, _cfuvid=O8mIvcXd9sto0glI5CFRIBOHjIDlwVB1AdtIuJG0kCo-1758319981567-0.0.1.1-604800000; path=/; domain=.replit.com; HttpOnly; Secure; SameSite=None'
+          },
+          'server' => { name: 'Server', value: 'cloudflare' },
+          'cf-ray' => { name: 'CF-RAY', value: '981c6d89fcfd5d13-IAD' },
+          'alt-svc' => { name: 'alt-svc', value: 'h3=":443"; ma=86400' }
+        },
+        [Symbol(headers map sorted)]: null
+      },
+      [Symbol(realm)]: null
+    }
+  }
+}
+
+Node.js v21.6.2

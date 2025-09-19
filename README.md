@@ -355,13 +355,24 @@ Example embed code:
 
 ### Common Issues
 
-#### `REPLIT_DOMAINS not provided` Error
+#### `REPLIT_DOMAINS not provided` Error  
 **Problem**: Error when running locally
-**Solution**: The app automatically handles this in development mode. Ensure you have:
+**Solution**: ✅ **FIXED** - The app automatically handles this in development mode. Ensure you have:
 ```env
 NODE_ENV=development
 REPLIT_DOMAINS=localhost:5000  # Optional, auto-set if missing
 ```
+
+#### OAuth/Authentication Errors in Local Development
+**Problem**: `ClientError: unexpected HTTP response status code` or OAuth discovery failures
+**Solution**: ✅ **FIXED** - The app now automatically:
+- Skips OAuth setup when running locally without `REPL_ID`
+- Bypasses authentication checks for local development
+- Provides helpful messages about authentication being disabled locally
+
+#### Node.js Version Compatibility
+**Problem**: `import.meta.dirname` undefined in Node.js v18
+**Solution**: Upgrade to **Node.js v20+** for full compatibility. The project requires modern Node.js features.
 
 #### Database Connection Issues
 1. Verify `DATABASE_URL` format is correct
@@ -376,12 +387,13 @@ REPLIT_DOMAINS=localhost:5000  # Optional, auto-set if missing
 
 ## 📝 Recent Updates
 
-### December 2024 - Major Feature Updates
+### September 2025 - Major Feature Updates
 - ✅ **Set & Forget Workflow**: Complete automation from work completion to testimonial collection
 - ✅ **Overall Testimonial Wall**: Unified view with embeddable widgets across all projects
 - ✅ **Work Status Tracking**: Three-stage client workflow with automatic triggering
 - ✅ **Smart Reminders**: Recurring reminders with timezone and quiet hour support
-- ✅ **Local Development Fix**: Automatic REPLIT_DOMAINS handling for local development
+- ✅ **Local Development Fix**: Complete OAuth and environment compatibility for local development
+- ✅ **Node.js v20+ Support**: Full compatibility with modern Node.js features
 - ✅ **UI Improvements**: Replaced placeholder content with realistic samples
 - ✅ **GitHub Integration**: Full repository setup and deployment guidance
 
