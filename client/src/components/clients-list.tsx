@@ -7,12 +7,13 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Client } from "@shared/schema";
 import ClientFormModal from "./client-form-modal";
+import CsvImportModal from "./csv-import-modal";
 
 interface ClientsListProps {
   projectId: string;
@@ -20,6 +21,7 @@ interface ClientsListProps {
 
 export default function ClientsList({ projectId }: ClientsListProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -153,19 +155,34 @@ export default function ClientsList({ projectId }: ClientsListProps) {
               <p className="text-muted-foreground mb-6">
                 Add clients to this project so they can submit testimonials for your work.
               </p>
-              <Button 
-                onClick={() => setShowCreateModal(true)}
-                data-testid="button-add-first-client"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Your First Client
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button 
+                  onClick={() => setShowCreateModal(true)}
+                  data-testid="button-add-first-client"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Client
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowImportModal(true)}
+                  data-testid="button-import-csv-first"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import from CSV
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
         <ClientFormModal 
           open={showCreateModal} 
           onOpenChange={setShowCreateModal}
+          projectId={projectId}
+        />
+        <CsvImportModal 
+          open={showImportModal} 
+          onOpenChange={setShowImportModal}
           projectId={projectId}
         />
       </>
@@ -176,13 +193,23 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     <>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-xl font-semibold text-foreground">Clients</h3>
-        <Button 
-          onClick={() => setShowCreateModal(true)}
-          data-testid="button-add-client"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Client
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setShowImportModal(true)}
+            data-testid="button-import-csv"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import CSV
+          </Button>
+          <Button 
+            onClick={() => setShowCreateModal(true)}
+            data-testid="button-add-client"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Client
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="clients-grid">
@@ -327,6 +354,12 @@ export default function ClientsList({ projectId }: ClientsListProps) {
           client={editingClient}
         />
       )}
+      
+      <CsvImportModal 
+        open={showImportModal} 
+        onOpenChange={setShowImportModal}
+        projectId={projectId}
+      />
     </>
   );
 }
