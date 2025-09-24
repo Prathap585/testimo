@@ -988,7 +988,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         scheduledAt: z.string().or(z.date()).transform((val) => {
           return typeof val === 'string' ? new Date(val) : val;
         }),
-        templateKey: z.string(),
+        templateKey: z.string().optional(),
         metadata: z.record(z.any()).optional()
       });
       
