@@ -23,6 +23,7 @@ import EmailSettingsForm from "@/components/email-settings-form";
 import EmbedCodeGenerator from "@/components/embed-code-generator";
 import ReminderSettingsForm from "@/components/reminder-settings-form";
 import RemindersDashboard from "@/components/reminders-dashboard";
+import ProjectStatusForm from "@/components/project-status-form";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 
@@ -238,6 +239,7 @@ export default function ProjectDetails() {
             </TabsContent>
 
             <TabsContent value="settings" className="space-y-6">
+              <ProjectStatusForm project={project} />
               <EmailSettingsForm project={project} />
               <ReminderSettingsForm project={project} />
               <EmbedCodeGenerator project={project} />
