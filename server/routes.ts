@@ -1337,6 +1337,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get client data for testimonial form (public route for prepopulation)
+  app.get("/api/projects/:projectId/client-by-email", async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const { email } = req.query;
+      
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email parameter is required" });
+      }
+      
+      // Get client by project and email
+      const client = await storage.getClientByProjectAndEmail(projectId, email);
+      if (!client) {
+        return res.status(404).json({ message: "Client not found" });
+      }
+      
+      // Return only safe client data (no sensitive info)
+      res.json({
+        name: client.name,
+        email: client.email,
+        company: client.company
+      });
+    } catch (error) {
+      console.error("Error fetching client data:", error);
+      res.status(500).json({ message: "Failed to fetch client data" });
+    }
+  });
+
   // Send testimonial request email
   app.post("/api/clients/:id/send-testimonial-request", isAuthenticated, async (req: any, res) => {
     try {
@@ -1398,8 +1426,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const smsSettings = project.smsSettings as { message: string } || 
         { message: "Hi {{clientName}}! Could you please share a testimonial for {{projectName}}? It would mean a lot to me. Submit here: {{testimonialUrl}}" };
 
-      // Build testimonial URL
-      const testimonialUrl = `${req.protocol}://${req.get('host')}/submit/${project.id}`;
+      // Build testimonial URL with client email for prepopulation
+      const testimonialUrl = `${req.protocol}://${req.get('host')}/submit/${project.id}?email=${encodeURIComponent(client.email)}`;
 
       // Replace template variables
       const message = replaceTemplateVariables(smsSettings.message, {

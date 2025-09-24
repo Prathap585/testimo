@@ -1,5 +1,5 @@
 import { useParams } from "wouter";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,10 @@ import type { Project } from "@shared/schema";
 
 export default function SubmitTestimonial() {
   const { id } = useParams();
+  
+  // Parse URL search parameters to get client email for prepopulation
+  const searchParams = new URLSearchParams(window.location.search);
+  const clientEmail = searchParams.get('email');
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [rating, setRating] = useState(0);
@@ -41,6 +45,34 @@ export default function SubmitTestimonial() {
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
     queryKey: ["/api/projects", id],
   });
+
+  // Fetch client data for prepopulation if email is provided
+  const { data: clientData, isLoading: clientLoading } = useQuery({
+    queryKey: ["/api/projects", id, "client-by-email", clientEmail],
+    queryFn: async () => {
+      if (!clientEmail || !id) return null;
+      try {
+        const response = await fetch(`/api/projects/${id}/client-by-email?email=${encodeURIComponent(clientEmail)}`);
+        if (!response.ok) return null;
+        return await response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!clientEmail && !!id,
+  });
+
+  // Prepopulate form data when client data is loaded
+  useEffect(() => {
+    if (clientData) {
+      setFormData(prev => ({
+        ...prev,
+        clientName: clientData.name || "",
+        clientEmail: clientData.email || "",
+        clientCompany: clientData.company || "",
+      }));
+    }
+  }, [clientData]);
 
   const submitTestimonialMutation = useMutation({
     mutationFn: async (data: any) => {
