@@ -19,6 +19,7 @@ import {
   type UsageMetrics,
   type SubscriptionPlan,
   type Reminder,
+  type ReminderWithClient,
   type InsertReminder,
 } from "@shared/schema";
 import { db } from "./db";
@@ -62,7 +63,7 @@ export interface IStorage {
   
   // Reminder operations
   createReminder(reminder: InsertReminder): Promise<Reminder>;
-  getRemindersByProjectId(projectId: string): Promise<Reminder[]>;
+  getRemindersByProjectId(projectId: string): Promise<ReminderWithClient[]>;
   getReminder(id: string): Promise<Reminder | undefined>;
   updateReminder(id: string, updates: Partial<InsertReminder>): Promise<Reminder>;
   deleteReminder(id: string): Promise<void>;
@@ -157,6 +158,7 @@ export class DatabaseStorage implements IStorage {
         phone: clients.phone,
         company: clients.company,
         projectId: clients.projectId,
+        workStatus: clients.workStatus,
         isContacted: clients.isContacted,
         lastContactedAt: clients.lastContactedAt,
         reminderOptOut: clients.reminderOptOut,
@@ -417,12 +419,22 @@ export class DatabaseStorage implements IStorage {
     return newReminder;
   }
 
-  async getRemindersByProjectId(projectId: string): Promise<Reminder[]> {
-    return await db
-      .select()
+  async getRemindersByProjectId(projectId: string): Promise<ReminderWithClient[]> {
+    const reminderResults = await db
+      .select({
+        reminder: reminders,
+        client: clients,
+      })
       .from(reminders)
+      .leftJoin(clients, eq(reminders.clientId, clients.id))
       .where(eq(reminders.projectId, projectId))
       .orderBy(desc(reminders.scheduledAt));
+
+    // Transform results to include client data in the reminder object
+    return reminderResults.map(result => ({
+      ...result.reminder,
+      client: result.client
+    }));
   }
 
   async getReminder(id: string): Promise<Reminder | undefined> {

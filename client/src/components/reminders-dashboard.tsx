@@ -26,29 +26,10 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import ReminderFormModal from "@/components/reminder-form-modal";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import type { ReminderWithClient } from "@shared/schema";
 
 interface RemindersListProps {
   projectId: string;
-}
-
-interface Reminder {
-  id: string;
-  projectId: string;
-  clientId: string;
-  channel: "email" | "sms";
-  templateKey?: string;
-  scheduledAt: string;
-  status: "pending" | "sent" | "failed" | "canceled";
-  attemptNumber: number;
-  metadata: any;
-  createdAt: string;
-  updatedAt: string;
-  // We'll need to join with client data
-  client?: {
-    name: string;
-    email: string;
-    phone?: string;
-  };
 }
 
 const STATUS_CONFIG = {
@@ -87,7 +68,7 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch reminders for this project
-  const { data: reminders, isLoading } = useQuery<Reminder[]>({
+  const { data: reminders, isLoading } = useQuery<ReminderWithClient[]>({
     queryKey: ["/api/projects", projectId, "reminders"],
   });
 
@@ -181,8 +162,8 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
     updateReminderMutation.mutate({ id: reminderId, status: "canceled" });
   };
 
-  const formatScheduledTime = (scheduledAt: string) => {
-    const date = parseISO(scheduledAt);
+  const formatScheduledTime = (scheduledAt: string | Date) => {
+    const date = typeof scheduledAt === 'string' ? parseISO(scheduledAt) : scheduledAt;
     const isPast = date < new Date();
     const relative = formatDistanceToNow(date, { addSuffix: true });
     
@@ -193,8 +174,8 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
     };
   };
 
-  const ReminderCard = ({ reminder }: { reminder: Reminder }) => {
-    const statusConfig = STATUS_CONFIG[reminder.status];
+  const ReminderCard = ({ reminder }: { reminder: ReminderWithClient }) => {
+    const statusConfig = STATUS_CONFIG[reminder.status as keyof typeof STATUS_CONFIG];
     const StatusIcon = statusConfig.icon;
     const ChannelIcon = reminder.channel === "email" ? Mail : MessageSquare;
     const timeInfo = formatScheduledTime(reminder.scheduledAt);
@@ -225,7 +206,7 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
                 <p className={timeInfo.isPast && reminder.status === "pending" ? "text-destructive" : ""}>
                   <strong>Scheduled:</strong> {timeInfo.absolute} ({timeInfo.relative})
                 </p>
-                {reminder.attemptNumber > 0 && (
+                {(reminder.attemptNumber || 0) > 0 && (
                   <p>
                     <strong>Attempts:</strong> {reminder.attemptNumber}
                   </p>
@@ -235,12 +216,12 @@ export default function RemindersDashboard({ projectId }: RemindersListProps) {
                     <strong>Template:</strong> {reminder.templateKey}
                   </p>
                 )}
-                {reminder.metadata?.recurring && (
+                {(reminder.metadata as any)?.recurring && (
                   <p>
                     <strong>Recurring:</strong> {
-                      reminder.metadata.recurringInterval === "daily" ? "Daily" :
-                      reminder.metadata.recurringInterval === "alternate_days" ? "Every 2 days" :
-                      reminder.metadata.recurringInterval === "weekly" ? "Weekly" : "Yes"
+                      (reminder.metadata as any)?.recurringInterval === "daily" ? "Daily" :
+                      (reminder.metadata as any)?.recurringInterval === "alternate_days" ? "Every 2 days" :
+                      (reminder.metadata as any)?.recurringInterval === "weekly" ? "Weekly" : "Yes"
                     } until testimonial received
                   </p>
                 )}

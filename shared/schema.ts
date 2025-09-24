@@ -272,6 +272,9 @@ export type UsageMetrics = typeof usageMetrics.$inferSelect;
 export type InsertUsageMetrics = z.infer<typeof insertUsageMetricsSchema>;
 export type InsertReminder = z.infer<typeof insertReminderSchema>;
 export type Reminder = typeof reminders.$inferSelect;
+export type ReminderWithClient = Reminder & {
+  client?: Client | null;
+};
 export type CsvClientImport = z.infer<typeof csvClientImportSchema>;
 export type BrandingSettings = z.infer<typeof brandingSettingsSchema>;
 
