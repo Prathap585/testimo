@@ -13,6 +13,8 @@ import path from "path";
 import { fileTypeFromBuffer } from "file-type";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { nanoid } from "nanoid";
+import { createAuthRoutes } from "./auth";
+import { authenticateJWT, type AuthenticatedRequest } from "./authMiddleware";
 
 // Extend global type for temporary storage
 declare global {
@@ -291,6 +293,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   app.use('/uploads/logos', staticServer);
+
+  // JWT Authentication routes
+  const authRoutes = createAuthRoutes(storage);
+  app.post("/api/auth/signup", authRoutes.signup);
+  app.post("/api/auth/login", authRoutes.login);
 
   // Auth routes
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
