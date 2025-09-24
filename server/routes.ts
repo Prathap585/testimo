@@ -992,9 +992,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: z.record(z.any()).optional()
       });
       
+      console.log("Reminder request body:", req.body);
       const validationResult = validationSchema.safeParse(req.body);
       
       if (!validationResult.success) {
+        console.log("Validation failed:", validationResult.error.errors);
         return res.status(400).json({ 
           message: "Invalid request data", 
           errors: validationResult.error.errors 
