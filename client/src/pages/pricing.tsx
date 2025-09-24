@@ -70,7 +70,7 @@ export default function Pricing() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
             <Card className="shadow-lg" data-testid="pricing-detailed-free">
               <CardContent className="p-8">
@@ -173,63 +173,6 @@ export default function Pricing() {
               </CardContent>
             </Card>
 
-            {/* Agency Plan */}
-            <Card className="shadow-lg" data-testid="pricing-detailed-agency">
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Agency</h3>
-                  <div className="text-4xl font-bold text-foreground mb-4">
-                    $49<span className="text-xl text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-muted-foreground">For agencies & teams</p>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>20 projects</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Unlimited testimonials</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>White-label solution</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Team collaboration</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Advanced analytics</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>API access</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Priority support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Custom integrations</span>
-                  </li>
-                </ul>
-                <Button 
-                  onClick={() => handleUpgrade('agency')}
-                  variant={currentPlan === 'agency' ? 'secondary' : 'outline'}
-                  className="w-full"
-                  data-testid="button-pricing-detailed-agency"
-                  disabled={createCheckoutMutation.isPending || currentPlan === 'agency'}
-                >
-                  {createCheckoutMutation.isPending ? 'Loading...' : 
-                   currentPlan === 'agency' ? 'Current Plan' : 
-                   'Upgrade to Agency'}
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           {/* FAQ Section */}

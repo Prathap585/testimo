@@ -221,7 +221,7 @@ export default function Landing() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
             <Card className="hover:shadow-lg transition-shadow duration-300" data-testid="pricing-card-free">
               <CardContent className="p-8">
@@ -296,44 +296,6 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            {/* Agency Plan */}
-            <Card className="hover:shadow-lg transition-shadow duration-300" data-testid="pricing-card-agency">
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Agency</h3>
-                  <div className="text-3xl font-bold text-foreground mb-2">
-                    $49<span className="text-lg text-muted-foreground">/mo</span>
-                  </div>
-                  <p className="text-muted-foreground">For agencies & teams</p>
-                </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center text-sm">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>20 projects</span>
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>White-label solution</span>
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Team collaboration</span>
-                  </li>
-                  <li className="flex items-center text-sm">
-                    <CheckCircle className="w-4 h-4 text-primary mr-3" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-                <Button 
-                  onClick={handleGetStarted}
-                  variant="outline" 
-                  className="w-full"
-                  data-testid="button-pricing-agency"
-                >
-                  Get Started
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
           <div className="text-center mt-12">
