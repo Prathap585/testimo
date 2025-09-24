@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star, Send, CheckCircle, Video, Upload, X } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Star, Send, CheckCircle, Video, Upload, X, Search, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -18,6 +19,13 @@ export default function SubmitTestimonial() {
   // Parse URL search parameters to get client email for prepopulation
   const searchParams = new URLSearchParams(window.location.search);
   const clientEmail = searchParams.get('email');
+  
+  console.log('Submit Testimonial Debug:', {
+    url: window.location.href,
+    search: window.location.search,
+    clientEmail,
+    projectId: id
+  });
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
   const [rating, setRating] = useState(0);
@@ -28,6 +36,11 @@ export default function SubmitTestimonial() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // "Find my info" functionality
+  const [showFindMyInfo, setShowFindMyInfo] = useState(!clientEmail); // Show if not prepopulated
+  const [searchEmail, setSearchEmail] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   
   const [formData, setFormData] = useState({
     clientName: "",
@@ -64,7 +77,13 @@ export default function SubmitTestimonial() {
 
   // Prepopulate form data when client data is loaded
   useEffect(() => {
+    console.log('useEffect triggered - clientData:', clientData);
     if (clientData) {
+      console.log('Prepopulating form with:', {
+        name: clientData.name,
+        email: clientData.email,
+        company: clientData.company
+      });
       setFormData(prev => ({
         ...prev,
         clientName: clientData.name || "",
@@ -73,6 +92,51 @@ export default function SubmitTestimonial() {
       }));
     }
   }, [clientData]);
+
+  const handleFindMyInfo = async () => {
+    if (!searchEmail.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address to search for your information.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/projects/${id}/client-by-email?email=${encodeURIComponent(searchEmail.trim())}`);
+      if (response.ok) {
+        const clientData = await response.json();
+        // Populate form with found client data
+        setFormData(prev => ({
+          ...prev,
+          clientName: clientData.name || "",
+          clientEmail: clientData.email || "",
+          clientCompany: clientData.company || "",
+        }));
+        setShowFindMyInfo(false); // Hide the search after successful find
+        toast({
+          title: "Found your information!",
+          description: `Welcome back, ${clientData.name}! Your details have been filled in.`,
+        });
+      } else {
+        toast({
+          title: "Not found",
+          description: "We couldn't find your information. Please fill in the form manually or check your email address.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong while searching. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const submitTestimonialMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -446,6 +510,65 @@ export default function SubmitTestimonial() {
                   </div>
                 </TabsContent>
               </Tabs>
+              
+              {/* "Find my info" functionality for non-prepopulated forms */}
+              {showFindMyInfo && (
+                <Collapsible open={showFindMyInfo} onOpenChange={setShowFindMyInfo}>
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full mb-4"
+                      type="button"
+                      data-testid="button-find-my-info"
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Find my info
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mb-6">
+                    <Card className="bg-muted/50">
+                      <CardContent className="pt-6">
+                        <div className="space-y-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              If you're already in our system, we can automatically fill in your details. 
+                              Just enter your email address below:
+                            </p>
+                            <div className="flex gap-2">
+                              <Input
+                                type="email"
+                                placeholder="Enter your email address"
+                                value={searchEmail}
+                                onChange={(e) => setSearchEmail(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleFindMyInfo()}
+                                data-testid="input-search-email"
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleFindMyInfo}
+                                disabled={isSearching || !searchEmail.trim()}
+                                data-testid="button-search-client"
+                              >
+                                {isSearching ? (
+                                  "Searching..."
+                                ) : (
+                                  <>
+                                    <Search className="w-4 h-4" />
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Don't see your email? No problem! Just collapse this section and fill in the form manually.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { 
   ArrowLeft, 
   Users, 
@@ -12,9 +13,11 @@ import {
   ExternalLink,
   Copy,
   CheckCircle,
-  Clock
+  Clock,
+  Power
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, Client, Testimonial } from "@shared/schema";
 import ClientsList from "@/components/clients-list";
@@ -30,6 +33,7 @@ import Footer from "@/components/footer";
 export default function ProjectDetails() {
   const { id } = useParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   if (!id) {
     return <div>Project not found</div>;
@@ -45,6 +49,27 @@ export default function ProjectDetails() {
 
   const { data: testimonials } = useQuery<Testimonial[]>({
     queryKey: ["/api/projects", id, "testimonials"],
+  });
+
+  // Project status update mutation
+  const updateProjectStatusMutation = useMutation({
+    mutationFn: async (isActive: boolean) => {
+      return await apiRequest("PATCH", `/api/projects/${id}`, { isActive });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Project status updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", id] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update project status",
+        variant: "destructive",
+      });
+    },
   });
 
   const copyFormUrl = () => {
@@ -130,13 +155,41 @@ export default function ProjectDetails() {
                 )}
               </div>
             </div>
-            <Badge 
-              variant={project.isActive ? "default" : "secondary"}
-              className="text-sm px-3 py-1"
-              data-testid="project-status"
-            >
-              {project.isActive ? "Active" : "Inactive"}
-            </Badge>
+            <div className="flex flex-col items-end space-y-3">
+              {/* Status Badge and Quick Toggle */}
+              <div className="flex items-center space-x-3">
+                <Badge 
+                  variant={project.isActive ? "default" : "secondary"}
+                  className="text-sm px-3 py-1"
+                  data-testid="project-status"
+                >
+                  {project.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <div className="flex items-center space-x-2">
+                  <Power className="w-4 h-4 text-muted-foreground" />
+                  <Switch
+                    checked={project.isActive ?? true}
+                    onCheckedChange={(checked) => updateProjectStatusMutation.mutate(checked)}
+                    disabled={updateProjectStatusMutation.isPending}
+                    data-testid="quick-status-toggle"
+                  />
+                </div>
+              </div>
+              {/* Link to Settings for full controls */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const settingsTab = document.querySelector('[data-testid="tab-settings"]') as HTMLElement;
+                  settingsTab?.click();
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                data-testid="link-to-settings"
+              >
+                <Settings className="w-3 h-3 mr-1" />
+                More controls in Settings
+              </Button>
+            </div>
           </div>
 
           {/* Stats Overview */}

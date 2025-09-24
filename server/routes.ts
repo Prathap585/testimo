@@ -12,6 +12,12 @@ import fs from "fs/promises";
 import path from "path";
 import { fileTypeFromBuffer } from "file-type";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { nanoid } from "nanoid";
+
+// Extend global type for temporary storage
+declare global {
+  var uploadTokens: Map<string, any> | undefined;
+}
 
 // Configure multer for CSV file uploads (store in memory for processing)
 const upload = multer({ 
@@ -153,7 +159,7 @@ async function cancelPendingRemindersForClient(projectId: string, clientEmail: s
       await storage.updateReminder(reminder.id, { 
         status: "canceled",
         metadata: { 
-          ...reminder.metadata, 
+          ...(reminder.metadata || {}), 
           canceledAt: new Date().toISOString(),
           cancelReason: "testimonial_received"
         }
@@ -772,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await sendTestimonialRequest(client, project, "email");
           
           // Schedule automatic follow-up reminders based on project settings
-          if (project.reminderSettings?.enabled) {
+          if (project.reminderSettings && (project.reminderSettings as any)?.enabled) {
             await scheduleAutomaticReminders(client, project);
           }
           
@@ -976,15 +982,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate request body using Zod schema, with custom scheduledAt handling
-      const validationSchema = insertReminderSchema.omit({ 
-        id: true, 
-        projectId: true, 
-        createdAt: true, 
-        updatedAt: true 
-      }).extend({
+      const validationSchema = z.object({
+        clientId: z.string(),
+        channel: z.enum(["email", "sms"]),
         scheduledAt: z.string().or(z.date()).transform((val) => {
           return typeof val === 'string' ? new Date(val) : val;
-        })
+        }),
+        templateKey: z.string(),
+        metadata: z.record(z.any()).optional()
       });
       
       const validationResult = validationSchema.safeParse(req.body);

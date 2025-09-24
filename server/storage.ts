@@ -64,6 +64,7 @@ export interface IStorage {
   // Reminder operations
   createReminder(reminder: InsertReminder): Promise<Reminder>;
   getRemindersByProjectId(projectId: string): Promise<ReminderWithClient[]>;
+  getAllPendingReminders(): Promise<ReminderWithClient[]>;
   getReminder(id: string): Promise<Reminder | undefined>;
   updateReminder(id: string, updates: Partial<InsertReminder>): Promise<Reminder>;
   deleteReminder(id: string): Promise<void>;
@@ -428,6 +429,24 @@ export class DatabaseStorage implements IStorage {
       .from(reminders)
       .leftJoin(clients, eq(reminders.clientId, clients.id))
       .where(eq(reminders.projectId, projectId))
+      .orderBy(desc(reminders.scheduledAt));
+
+    // Transform results to include client data in the reminder object
+    return reminderResults.map(result => ({
+      ...result.reminder,
+      client: result.client
+    }));
+  }
+
+  async getAllPendingReminders(): Promise<ReminderWithClient[]> {
+    const reminderResults = await db
+      .select({
+        reminder: reminders,
+        client: clients,
+      })
+      .from(reminders)
+      .leftJoin(clients, eq(reminders.clientId, clients.id))
+      .where(eq(reminders.status, "pending"))
       .orderBy(desc(reminders.scheduledAt));
 
     // Transform results to include client data in the reminder object

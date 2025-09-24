@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
+import { startReminderProcessor } from "./reminderProcessor";
 
 // Load environment variables from .env file in development
 if (process.env.NODE_ENV === "development") {
@@ -73,5 +74,8 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start the automated reminder processor
+    startReminderProcessor();
   });
 })();

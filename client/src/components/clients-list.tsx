@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload, Bell, PlayCircle, Pause, CheckSquare } from "lucide-react";
+import { MoreHorizontal, Plus, Users, Mail, MessageSquare, Phone, Building, CheckCircle, Clock, Upload, Bell, PlayCircle, Pause, CheckSquare, Copy, Link } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -72,6 +72,15 @@ export default function ClientsList({ projectId }: ClientsListProps) {
     if (window.confirm("Are you sure you want to delete this client? This action cannot be undone.")) {
       deleteClientMutation.mutate(clientId);
     }
+  };
+
+  const handleCopyPersonalizedLink = (client: Client) => {
+    const url = `${window.location.origin}/submit/${projectId}?email=${encodeURIComponent(client.email)}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Copied!",
+      description: `Personalized testimonial link copied for ${client.name}`,
+    });
   };
 
   const getWorkStatusBadge = (workStatus: string) => {
@@ -336,6 +345,13 @@ export default function ClientsList({ projectId }: ClientsListProps) {
                       {client.isContacted ? "SMS Sent" : "Send SMS"}
                     </DropdownMenuItem>
                   )}
+                  <DropdownMenuItem 
+                    onClick={() => handleCopyPersonalizedLink(client)}
+                    data-testid={`copy-personalized-link-${client.id}`}
+                  >
+                    <Link className="w-4 h-4 mr-2" />
+                    Copy Personalized Link
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => handleScheduleReminder(client.id)}
                     data-testid={`schedule-reminder-${client.id}`}
