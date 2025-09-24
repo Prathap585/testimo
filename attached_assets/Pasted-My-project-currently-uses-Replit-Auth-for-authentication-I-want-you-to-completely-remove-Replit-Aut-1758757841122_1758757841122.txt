@@ -1,0 +1,32 @@
+My project currently uses Replit Auth for authentication. I want you to completely remove Replit Auth and rebuild the authentication flow using JWT tokens instead. Please update both the backend and frontend code with the following requirements:
+
+### Backend (Node.js + Express)
+1. Create two new endpoints:
+- POST /api/auth/signup → accepts name, email, password, hashes the password using bcrypt, saves to the database.
+- POST /api/auth/login → accepts email, password, verifies against DB, and if valid, returns a signed JWT token.
+2. Use the jsonwebtoken library:
+- JWT payload should include { userId, email }.
+- Tokens should expire in 1 hour.
+- Use an environment variable for the secret key.
+3. Add middleware (authMiddleware.js) to verify JWT for protected routes.
+4. Update existing protected APIs (like testimonials) to use this middleware.
+5. Passwords should never be stored in plain text (use bcrypt hashing).
+
+### Frontend
+1. Replace the Replit Auth screens with **custom Sign Up and Sign In pages**:
+- Modern, minimal UI: center card, gradient background, clean input fields, and a bold submit button.
+- Sign Up fields: name, email, password → call /api/auth/signup.
+- Sign In fields: email, password → call /api/auth/login and store returned JWT.
+2. Store the JWT in localStorage for now (I may switch to cookies later).
+3. For all API requests to protected routes, attach the JWT in the Authorization header as `Bearer <token>`.
+4. If JWT is expired or invalid, redirect the user to the login page.
+5. Add a logout button that clears the JWT and redirects to login.
+
+### Deliverables
+- Updated backend routes for signup/login (auth.routes.js).
+- JWT middleware for protecting routes (authMiddleware.js).
+- Modern React (or vanilla JS if my project is not React) Sign Up and Login components.
+- Example of calling a protected route with JWT attached.
+- Remove all code and screens related to Replit Auth.
+
+Make sure to also update the readme file with all new dependencies (bcrypt, jsonwebtoken, etc.) and provide installation commands so I can run it easily.

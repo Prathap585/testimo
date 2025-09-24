@@ -25,12 +25,14 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)]
 );
 
-// User storage table (required for Replit Auth)
+// User storage table (JWT Authentication)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
+  // JWT Authentication fields
+  passwordHash: varchar("password_hash").notNull(),
   profileImageUrl: varchar("profile_image_url"),
   // Subscription fields
   subscriptionPlan: varchar("subscription_plan").default("free"), // free, pro, agency
@@ -243,6 +245,19 @@ export const csvClientImportSchema = z.object({
   company: z.string().optional(),
 });
 
+// Authentication schemas
+export const signupSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
 // Branding settings schema for project customization (PATCH operations only)
 export const brandingSettingsSchema = z.object({
   primaryColor: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, "Must be a valid hex color").optional(),
@@ -276,6 +291,8 @@ export type ReminderWithClient = Reminder & {
   client?: Client | null;
 };
 export type CsvClientImport = z.infer<typeof csvClientImportSchema>;
+export type SignupRequest = z.infer<typeof signupSchema>;
+export type LoginRequest = z.infer<typeof loginSchema>;
 export type BrandingSettings = z.infer<typeof brandingSettingsSchema>;
 
 // Subscription plan limits
