@@ -12,6 +12,23 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Client } from "@shared/schema";
 
+// Utility functions for timezone handling
+const formatLocalDateTime = (date: Date): string => {
+  // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const parseLocalDateTime = (dateTimeString: string): Date => {
+  // Parse datetime-local string to local Date object
+  return new Date(dateTimeString);
+};
+
 interface ReminderFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -56,13 +73,13 @@ export default function ReminderFormModal({
   useEffect(() => {
     if (open) {
       const now = new Date();
-      const defaultTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
-      defaultTime.setHours(9, 0, 0, 0); // 9 AM
+      const defaultTime = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow in user's timezone
+      defaultTime.setHours(9, 0, 0, 0); // 9 AM in user's timezone
       
       setFormData({
         clientId: preselectedClientId || "",
         channel: "email",
-        scheduledAt: defaultTime.toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+        scheduledAt: formatLocalDateTime(defaultTime), // Use local time formatting
         templateKey: "",
         recurring: false,
         recurringInterval: "daily"
@@ -72,10 +89,14 @@ export default function ReminderFormModal({
 
   const createReminderMutation = useMutation({
     mutationFn: async (data: ReminderFormData) => {
+      // Convert local datetime to UTC for server storage
+      const localDateTime = parseLocalDateTime(data.scheduledAt);
+      const utcScheduledAt = localDateTime.toISOString();
+      
       return await apiRequest("POST", `/api/projects/${projectId}/reminders`, {
         clientId: data.clientId,
         channel: data.channel,
-        scheduledAt: data.scheduledAt,
+        scheduledAt: utcScheduledAt, // Send UTC time to server
         templateKey: data.templateKey || undefined,
         metadata: {
           recurring: data.recurring,
@@ -121,7 +142,7 @@ export default function ReminderFormModal({
       return;
     }
 
-    const scheduledTime = new Date(formData.scheduledAt);
+    const scheduledTime = parseLocalDateTime(formData.scheduledAt);
     if (scheduledTime <= new Date()) {
       toast({
         title: "Error",
@@ -219,11 +240,11 @@ export default function ReminderFormModal({
               type="datetime-local"
               value={formData.scheduledAt}
               onChange={(e) => handleInputChange("scheduledAt", e.target.value)}
-              min={new Date().toISOString().slice(0, 16)}
+              min={formatLocalDateTime(new Date())}
               data-testid="input-scheduled-at"
             />
             <p className="text-xs text-muted-foreground">
-              When should this reminder be sent?
+              When should this reminder be sent? (Time shown in your local timezone)
             </p>
           </div>
 
