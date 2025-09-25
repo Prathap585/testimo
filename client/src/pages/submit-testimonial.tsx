@@ -56,7 +56,14 @@ export default function SubmitTestimonial() {
   }
 
   const { data: project, isLoading: projectLoading } = useQuery<Project>({
-    queryKey: ["/api/projects", id],
+    queryKey: ["/api/projects", id, "public"],
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${id}/public`);
+      if (!response.ok) {
+        throw new Error('Project not found');
+      }
+      return response.json();
+    }
   });
 
   // Fetch client data for prepopulation if email is provided

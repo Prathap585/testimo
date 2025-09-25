@@ -14,6 +14,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { nanoid } from "nanoid";
 import { createAuthRoutes } from "./auth";
 import { authenticateJWT, type AuthenticatedRequest } from "./authMiddleware";
+import { sendEmail } from "./emailService";
 
 // Extend global type for temporary storage
 declare global {
@@ -85,10 +86,32 @@ async function sendTestimonialRequest(client: any, project: any, channel: string
   const testimonialUrl = `${process.env.REPL_URL || 'http://localhost:5000'}/submit/${project.id}?email=${encodeURIComponent(client.email)}`;
   
   console.log(`Sending ${channel} testimonial request to ${client.email} for project ${project.name}`);
-  console.log(`Testimonial URL: ${testimonialUrl}`);
   
-  // TODO: Replace with actual email sending functionality
-  // For now, just log the action
+  try {
+    // Use SendGrid to send actual emails
+    const emailContent = `Hi ${client.name || client.email},\n\nWe'd love to hear about your experience! Please share your testimonial by clicking the link below:\n\n${testimonialUrl}\n\nThank you!\n\nBest regards,\n${project.name}`;
+    
+    const emailSuccess = await sendEmail({
+      to: client.email,
+      from: project.emailSettings?.fromEmail || 'noreply@testimo.app',
+      subject: `Share your testimonial for ${project.name}`,
+      text: emailContent,
+      html: `<p>Hi ${client.name || client.email},</p>
+             <p>We'd love to hear about your experience! Please share your testimonial by clicking the link below:</p>
+             <p><a href="${testimonialUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Share Your Testimonial</a></p>
+             <p>Or copy this link: ${testimonialUrl}</p>
+             <p>Thank you!</p>
+             <p>Best regards,<br>${project.name}</p>`
+    });
+    
+    if (emailSuccess) {
+      console.log(`Email sent successfully to ${client.email}`);
+    } else {
+      console.error(`Failed to send email to ${client.email}`);
+    }
+  } catch (error) {
+    console.error(`Error sending email to ${client.email}:`, error);
+  }
   
   return { success: true, url: testimonialUrl };
 }
@@ -514,6 +537,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching project:", error);
       res.status(500).json({ message: "Failed to fetch project" });
+    }
+  });
+
+  // Get public project info for testimonial submissions (no authentication required)
+  app.get("/api/projects/:id/public", async (req, res) => {
+    try {
+      const project = await storage.getProject(req.params.id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      // Return only public information needed for testimonial submission
+      const publicProject = {
+        id: project.id,
+        name: project.name,
+        description: project.description
+      };
+      
+      res.json(publicProject);
+    } catch (error) {
+      console.error("Error fetching public project info:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
