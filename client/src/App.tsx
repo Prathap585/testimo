@@ -16,6 +16,8 @@ import Testimonials from "@/pages/testimonials";
 import TestimonialWall from "@/pages/testimonial-wall";
 import TestimonialWallEmbed from "@/pages/testimonial-wall-embed";
 import Embed from "@/pages/embed";
+import SignUp from "@/pages/signup";
+import SignIn from "@/pages/signin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -26,6 +28,8 @@ function Router() {
       {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/signup" component={SignUp} />
+          <Route path="/signin" component={SignIn} />
           <Route path="/submit/:id" component={SubmitTestimonial} />
           <Route path="/testimonials" component={Testimonials} />
           <Route path="/embed/:projectId" component={Embed} />

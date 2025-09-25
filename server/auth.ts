@@ -4,7 +4,11 @@ import jwt from "jsonwebtoken";
 import { signupSchema, loginSchema } from "@shared/schema";
 import type { IStorage } from "./storage";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_in_production";
+// Enforce JWT secret in production for security
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET environment variable is required in production');
+}
+const JWT_SECRET = process.env.JWT_SECRET || "development_secret_change_in_production";
 const JWT_EXPIRES_IN = "1h";
 const BCRYPT_ROUNDS = 12;
 

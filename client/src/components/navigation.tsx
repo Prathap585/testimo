@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function Navigation() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, logout } = useAuth();
 
   const isActive = (path: string) => location === path;
 
@@ -25,12 +25,8 @@ export default function Navigation() {
     </Link>
   );
 
-  const handleAuthAction = () => {
-    if (isAuthenticated) {
-      window.location.href = "/api/logout";
-    } else {
-      window.location.href = "/api/login";
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -63,7 +59,7 @@ export default function Navigation() {
                 <>
                   {isAuthenticated ? (
                     <Button
-                      onClick={handleAuthAction}
+                      onClick={handleLogout}
                       variant="outline"
                       data-testid="button-logout"
                     >
@@ -71,19 +67,21 @@ export default function Navigation() {
                     </Button>
                   ) : (
                     <>
-                      <Button
-                        onClick={handleAuthAction}
-                        variant="ghost"
-                        data-testid="button-login"
-                      >
-                        Login
-                      </Button>
-                      <Button
-                        onClick={handleAuthAction}
-                        data-testid="button-signup"
-                      >
-                        Start Free Trial
-                      </Button>
+                      <Link href="/signin">
+                        <Button
+                          variant="ghost"
+                          data-testid="button-login"
+                        >
+                          Login
+                        </Button>
+                      </Link>
+                      <Link href="/signup">
+                        <Button
+                          data-testid="button-signup"
+                        >
+                          Start Free Trial
+                        </Button>
+                      </Link>
                     </>
                   )}
                 </>
@@ -112,7 +110,7 @@ export default function Navigation() {
                     <div className="pt-4 border-t border-border">
                       {isAuthenticated ? (
                         <Button
-                          onClick={handleAuthAction}
+                          onClick={handleLogout}
                           variant="outline"
                           className="w-full"
                           data-testid="button-mobile-logout"
@@ -121,21 +119,25 @@ export default function Navigation() {
                         </Button>
                       ) : (
                         <div className="space-y-2">
-                          <Button
-                            onClick={handleAuthAction}
-                            variant="ghost"
-                            className="w-full"
-                            data-testid="button-mobile-login"
-                          >
-                            Login
-                          </Button>
-                          <Button
-                            onClick={handleAuthAction}
-                            className="w-full"
-                            data-testid="button-mobile-signup"
-                          >
-                            Start Free Trial
-                          </Button>
+                          <Link href="/signin">
+                            <Button
+                              variant="ghost"
+                              className="w-full"
+                              data-testid="button-mobile-login"
+                              onClick={closeMobileMenu}
+                            >
+                              Login
+                            </Button>
+                          </Link>
+                          <Link href="/signup">
+                            <Button
+                              className="w-full"
+                              data-testid="button-mobile-signup"
+                              onClick={closeMobileMenu}
+                            >
+                              Start Free Trial
+                            </Button>
+                          </Link>
                         </div>
                       )}
                     </div>
