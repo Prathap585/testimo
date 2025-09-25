@@ -35,9 +35,10 @@ export default function ProjectStatusForm({ project }: ProjectStatusFormProps) {
         description: `Project is now ${isActive ? "active" : "inactive"}`,
       });
       setHasChanges(false);
-      // Invalidate the project query to refresh the data
+      // Invalidate the project queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/projects", project.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", "with-counts"] });
     },
     onError: (error) => {
       console.error("Error updating project status:", error);

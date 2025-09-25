@@ -7,6 +7,7 @@ import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 
 interface WallData {
@@ -113,10 +114,7 @@ export default function TestimonialWall() {
         theme,
         limit: limit.toString()
       });
-      const response = await fetch(`/api/testimonials/wall?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch testimonials');
-      }
+      const response = await apiRequest("GET", `/api/testimonials/wall?${params}`);
       return response.json();
     },
     enabled: isAuthenticated,
