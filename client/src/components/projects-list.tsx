@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import type { Project, Client, Testimonial } from "@shared/schema";
 import ProjectFormModal from "./project-form-modal";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ProjectWithCounts extends Project {
   clientCount: number;
@@ -35,18 +36,15 @@ export default function ProjectsList() {
       const projectsWithCountsData = await Promise.all(
         projects.map(async (project) => {
           try {
-            const [clientsResponse, testimonialsResponse] = await Promise.all([
-              fetch(`/api/projects/${project.id}/clients`),
-              fetch(`/api/projects/${project.id}/testimonials`)
+            const [clients, testimonials] = await Promise.all([
+              apiRequest("GET", `/api/projects/${project.id}/clients`),
+              apiRequest("GET", `/api/projects/${project.id}/testimonials`)
             ]);
-            
-            const clients = clientsResponse.ok ? await clientsResponse.json() : [];
-            const testimonials = testimonialsResponse.ok ? await testimonialsResponse.json() : [];
             
             return {
               ...project,
-              clientCount: clients.length,
-              testimonialCount: testimonials.length,
+              clientCount: clients?.length || 0,
+              testimonialCount: testimonials?.length || 0,
             };
           } catch {
             return {
