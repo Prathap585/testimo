@@ -36,10 +36,13 @@ export default function ProjectsList() {
       const projectsWithCountsData = await Promise.all(
         projects.map(async (project) => {
           try {
-            const [clients, testimonials] = await Promise.all([
+            const [clientsResponse, testimonialsResponse] = await Promise.all([
               apiRequest("GET", `/api/projects/${project.id}/clients`),
               apiRequest("GET", `/api/projects/${project.id}/testimonials`)
             ]);
+            
+            const clients = await clientsResponse.json();
+            const testimonials = await testimonialsResponse.json();
             
             return {
               ...project,
