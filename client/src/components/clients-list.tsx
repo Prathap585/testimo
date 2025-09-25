@@ -45,6 +45,7 @@ export default function ClientsList({ projectId }: ClientsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
     },
     onError: () => {
       toast({
@@ -107,6 +108,7 @@ export default function ClientsList({ projectId }: ClientsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
     },
     onError: () => {
       toast({
@@ -128,6 +130,7 @@ export default function ClientsList({ projectId }: ClientsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
     },
     onError: (error: any) => {
       toast({
@@ -154,6 +157,7 @@ export default function ClientsList({ projectId }: ClientsListProps) {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
     },
     onError: () => {
       toast({

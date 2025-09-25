@@ -324,8 +324,8 @@ export default function TestimonialWall() {
             <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
               Once you collect and approve testimonials from your projects, they'll appear here in a beautiful showcase. You can still customize the embed settings above and copy the embed code to prepare for when testimonials start coming in.
             </p>
-            <Button onClick={() => window.location.href = '/projects'}>
-              Create Your First Project
+            <Button onClick={() => window.location.href = '/'} data-testid="button-go-to-dashboard">
+              Go to Dashboard
             </Button>
           </div>
         )}

@@ -63,6 +63,7 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       resetForm();
       onOpenChange(false);
     },
@@ -86,6 +87,7 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
       });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "clients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       resetForm();
       onOpenChange(false);
     },
