@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertContactSubmissionSchema, subscriptionLimits, type SubscriptionPlan, csvClientImportSchema, insertClientSchema, brandingSettingsSchema, insertTestimonialSchema, insertReminderSchema } from "@shared/schema";
 import { z } from "zod";
 import twilio from "twilio";
@@ -253,8 +252,6 @@ async function sendSMS(to: string, message: string): Promise<any> {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup authentication
-  await setupAuth(app);
 
   // Ensure uploads directory exists
   try {
@@ -470,9 +467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects", isAuthenticated, async (req: any, res) => {
+  app.post("/api/projects", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.userId;
       
       // Check usage limits
       const user = await storage.getUser(userId);
@@ -503,14 +500,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+  app.get("/api/projects/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const project = await storage.getProject(req.params.id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       // Ensure user owns this project
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
       res.json(project);
@@ -520,14 +517,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/projects/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const project = await storage.getProject(req.params.id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       // Ensure user owns this project
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -549,14 +546,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update project email settings
-  app.patch("/api/projects/:id/email-settings", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/projects/:id/email-settings", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const project = await storage.getProject(req.params.id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       // Ensure user owns this project
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -569,14 +566,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/projects/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/projects/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const project = await storage.getProject(req.params.id);
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
       // Ensure user owns this project
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -589,11 +586,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Branding endpoints
-  app.post("/api/projects/:projectId/logo", isAuthenticated, logoUpload.single('logo'), async (req: any, res) => {
+  app.post("/api/projects/:projectId/logo", authenticateJWT, logoUpload.single('logo'), async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -659,11 +656,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/projects/:projectId/branding", isAuthenticated, async (req: any, res) => {
+  app.get("/api/projects/:projectId/branding", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -674,11 +671,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/projects/:projectId/branding", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/projects/:projectId/branding", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -916,7 +913,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (tokenData.objectPath !== objectPath || 
-          tokenData.userId !== req.user.claims.sub || 
+          tokenData.userId !== req.user!.userId || 
           tokenData.projectId !== testimonial.projectId) {
         return res.status(403).json({ message: "Invalid token binding" });
       }
@@ -970,11 +967,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reminder System API endpoints
-  app.get("/api/projects/:projectId/reminders", isAuthenticated, async (req: any, res) => {
+  app.get("/api/projects/:projectId/reminders", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -986,11 +983,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:projectId/reminders", isAuthenticated, async (req: any, res) => {
+  app.post("/api/projects/:projectId/reminders", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1048,7 +1045,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/reminders/:id/send", isAuthenticated, async (req: any, res) => {
+  app.post("/api/reminders/:id/send", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const reminder = await storage.getReminder(req.params.id);
       if (!reminder) {
@@ -1057,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify project ownership
       const project = await storage.getProject(reminder.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1131,7 +1128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/reminders/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/reminders/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const reminder = await storage.getReminder(req.params.id);
       if (!reminder) {
@@ -1140,7 +1137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify project ownership
       const project = await storage.getProject(reminder.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1152,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/reminders/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/reminders/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const reminder = await storage.getReminder(req.params.id);
       if (!reminder) {
@@ -1161,7 +1158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify project ownership  
       const project = await storage.getProject(reminder.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1174,11 +1171,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // CSV Import endpoints
-  app.get("/api/projects/:projectId/clients/import/template", isAuthenticated, async (req: any, res) => {
+  app.get("/api/projects/:projectId/clients/import/template", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1195,11 +1192,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/projects/:projectId/clients/import", isAuthenticated, upload.single('csvFile'), async (req: any, res) => {
+  app.post("/api/projects/:projectId/clients/import", authenticateJWT, upload.single('csvFile'), async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1283,11 +1280,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Protected routes - Testimonials
-  app.get("/api/projects/:projectId/testimonials", isAuthenticated, async (req: any, res) => {
+  app.get("/api/projects/:projectId/testimonials", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       // Verify project ownership
       const project = await storage.getProject(req.params.projectId);
-      if (!project || project.userId !== req.user.claims.sub) {
+      if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
       
@@ -1315,7 +1312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/testimonials/:id", isAuthenticated, async (req: any, res) => {
+  app.patch("/api/testimonials/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const testimonial = await storage.getTestimonial(req.params.id);
       if (!testimonial) {
@@ -1336,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/testimonials/:id", isAuthenticated, async (req: any, res) => {
+  app.delete("/api/testimonials/:id", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const testimonial = await storage.getTestimonial(req.params.id);
       if (!testimonial) {
@@ -1386,7 +1383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send testimonial request email
-  app.post("/api/clients/:id/send-testimonial-request", isAuthenticated, async (req: any, res) => {
+  app.post("/api/clients/:id/send-testimonial-request", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const client = await storage.getClient(req.params.id);
       if (!client) {
@@ -1399,7 +1396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify project ownership
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1421,7 +1418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send testimonial request SMS
-  app.post("/api/clients/:id/send-sms-request", isAuthenticated, async (req: any, res) => {
+  app.post("/api/clients/:id/send-sms-request", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
       const client = await storage.getClient(req.params.id);
       if (!client) {
@@ -1438,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify project ownership
-      if (project.userId !== req.user.claims.sub) {
+      if (project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1481,9 +1478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Subscription management routes
-  app.post("/api/subscription/create-checkout", isAuthenticated, async (req: any, res) => {
+  app.post("/api/subscription/create-checkout", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.userId;
       const { plan } = req.body;
       
       if (!['pro', 'agency'].includes(plan)) {
@@ -1548,9 +1545,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/subscription/cancel", isAuthenticated, async (req: any, res) => {
+  app.post("/api/subscription/cancel", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.userId;
       const user = await storage.getUser(userId);
       
       if (!user?.stripeSubscriptionId) {
@@ -1568,9 +1565,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/subscription/status", isAuthenticated, async (req: any, res) => {
+  app.get("/api/subscription/status", authenticateJWT, async (req: AuthenticatedRequest, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user!.userId;
       const user = await storage.getUser(userId);
       const usage = await storage.getUserUsage(userId);
       

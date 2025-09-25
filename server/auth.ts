@@ -17,7 +17,6 @@ export function createAuthRoutes(storage: IStorage) {
   // POST /api/auth/signup
   const signup = async (req: Request, res: Response) => {
     try {
-      console.log("Signup request body:", req.body);
       
       // Validate request body
       const validationResult = signupSchema.safeParse(req.body);
@@ -78,7 +77,7 @@ export function createAuthRoutes(storage: IStorage) {
   // POST /api/auth/login
   const login = async (req: Request, res: Response) => {
     try {
-      console.log("Login request for email:", req.body.email);
+      console.log("Login attempt for email:", req.body.email);
       
       // Validate request body
       const validationResult = loginSchema.safeParse(req.body);
