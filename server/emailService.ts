@@ -1,11 +1,12 @@
-import { MailService } from '@sendgrid/mail';
+import { MailerSend, EmailParams as MailerSendEmailParams, Sender, Recipient } from 'mailersend';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+if (!process.env.MAILERSEND_API_KEY) {
+  throw new Error("MAILERSEND_API_KEY environment variable must be set");
 }
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+const mailerSend = new MailerSend({
+  apiKey: process.env.MAILERSEND_API_KEY,
+});
 
 interface EmailParams {
   to: string;
@@ -17,16 +18,26 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
-    await mailService.send({
-      to: params.to,
-      from: params.from,
-      subject: params.subject,
-      text: params.text,
-      html: params.html,
-    });
+    const sentFrom = new Sender(params.from, "Testimo");
+    const recipients = [new Recipient(params.to)];
+
+    const emailParams = new MailerSendEmailParams()
+      .setFrom(sentFrom)
+      .setTo(recipients)
+      .setSubject(params.subject);
+
+    if (params.html) {
+      emailParams.setHtml(params.html);
+    }
+    
+    if (params.text) {
+      emailParams.setText(params.text);
+    }
+
+    await mailerSend.email.send(emailParams);
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('MailerSend email error:', error);
     return false;
   }
 }
