@@ -1517,6 +1517,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: "Invalid phone number format" });
       } else if (error.code === 21408) {
         res.status(400).json({ message: "Permission denied for phone number" });
+      } else if (error.code === 21606) {
+        res.status(400).json({ message: "Your Twilio phone number is not SMS-enabled. Please verify your Twilio phone number supports SMS messaging." });
       } else {
         res.status(500).json({ message: "Failed to send SMS testimonial request" });
       }
