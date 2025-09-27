@@ -800,6 +800,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Access denied" });
       }
       
+      // Check for duplicate email
+      if (req.body.email) {
+        const existingClient = await storage.getClientByProjectAndEmail(req.params.projectId, req.body.email);
+        if (existingClient) {
+          return res.status(400).json({ 
+            message: `A client with email ${req.body.email} already exists in this project.` 
+          });
+        }
+      }
+      
       const clientData = { ...req.body, projectId: req.params.projectId };
       const client = await storage.createClient(clientData);
       res.status(201).json(client);
@@ -820,6 +830,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const project = await storage.getProject(client.projectId);
       if (!project || project.userId !== req.user!.userId) {
         return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Check for duplicate email if email is being updated
+      if (req.body.email && req.body.email !== client.email) {
+        const existingClient = await storage.getClientByProjectAndEmail(client.projectId, req.body.email);
+        if (existingClient && existingClient.id !== client.id) {
+          return res.status(400).json({ 
+            message: `A client with email ${req.body.email} already exists in this project.` 
+          });
+        }
       }
       
       const previousWorkStatus = client.workStatus;
