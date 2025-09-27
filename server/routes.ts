@@ -93,7 +93,7 @@ async function sendTestimonialRequest(client: any, project: any, channel: string
     
     const emailSuccess = await sendEmail({
       to: client.email,
-      from: project.emailSettings?.fromEmail || 'noreply@testimo.app',
+      from: 'noreply@test-r6ke4n1redegon12.mlsender.net',
       subject: `Share your testimonial for ${project.name}`,
       text: emailContent,
       html: `<p>Hi ${client.name || client.email},</p>
