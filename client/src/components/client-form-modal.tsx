@@ -68,9 +68,26 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
       onOpenChange(false);
     },
     onError: (error) => {
+      let errorMessage = "Failed to create client. Please try again.";
+      
+      // Extract the specific error message from API response
+      try {
+        const errorText = error.message;
+        const jsonStart = errorText.indexOf('{');
+        if (jsonStart !== -1) {
+          const jsonPart = errorText.substring(jsonStart);
+          const errorData = JSON.parse(jsonPart);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        }
+      } catch (e) {
+        // If parsing fails, use default message
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to create client. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -92,9 +109,26 @@ export default function ClientFormModal({ open, onOpenChange, projectId, client 
       onOpenChange(false);
     },
     onError: (error) => {
+      let errorMessage = "Failed to update client. Please try again.";
+      
+      // Extract the specific error message from API response
+      try {
+        const errorText = error.message;
+        const jsonStart = errorText.indexOf('{');
+        if (jsonStart !== -1) {
+          const jsonPart = errorText.substring(jsonStart);
+          const errorData = JSON.parse(jsonPart);
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        }
+      } catch (e) {
+        // If parsing fails, use default message
+      }
+      
       toast({
         title: "Error", 
-        description: "Failed to update client. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
