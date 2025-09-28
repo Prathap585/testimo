@@ -394,6 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   // Auth routes
   app.get(
     "/api/auth/user",
