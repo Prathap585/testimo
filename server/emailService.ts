@@ -18,6 +18,8 @@ interface EmailParams {
 
 export async function sendEmail(params: EmailParams): Promise<boolean> {
   try {
+    console.log(`📧 Attempting to send email from ${params.from} to ${params.to} with subject: "${params.subject}"`);
+    
     const sentFrom = new Sender(params.from, "Testimo");
     const recipients = [new Recipient(params.to)];
 
@@ -34,10 +36,14 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       emailParams.setText(params.text);
     }
 
-    await mailerSend.email.send(emailParams);
+    const response = await mailerSend.email.send(emailParams);
+    console.log(`✅ Email sent successfully from ${params.from} to ${params.to}`, response);
     return true;
   } catch (error) {
-    console.error('MailerSend email error:', error);
+    console.error(`❌ MailerSend email error for ${params.to}:`, error);
+    if (error instanceof Error) {
+      console.error(`Error details: ${error.message}`);
+    }
     return false;
   }
 }
