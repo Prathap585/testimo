@@ -7,10 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Get current subscription status
   const { data: subscriptionStatus } = useQuery({
@@ -39,21 +41,21 @@ export default function Pricing() {
 
   const handleGetStarted = () => {
     if (!isAuthenticated) {
-      window.location.href = "/api/login";
+      setLocation("/signup");
     } else {
-      window.location.href = "/";
+      setLocation("/");
     }
   };
 
   const handleUpgrade = (plan: string) => {
     if (!isAuthenticated) {
-      window.location.href = "/api/login";
+      setLocation("/signup");
       return;
     }
     createCheckoutMutation.mutate(plan);
   };
 
-  const currentPlan = subscriptionStatus?.plan || 'free';
+  const currentPlan = (subscriptionStatus as any)?.plan || 'free';
 
   return (
     <div className="min-h-screen bg-background">

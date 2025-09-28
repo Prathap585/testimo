@@ -82,6 +82,27 @@ export default function Home() {
           <p className="text-xl text-muted-foreground mb-8" data-testid="welcome-subtitle">
             Manage your testimonial collection campaigns and track your success.
           </p>
+          
+          {/* Key Features Highlight */}
+          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-6 mb-8" data-testid="features-highlight">
+            <h2 className="text-lg font-semibold text-foreground mb-4" data-testid="features-highlight-title">✨ What makes Testimo special:</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-start space-x-3" data-testid="feature-smart-links-highlight">
+                <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
+                <div>
+                  <p className="font-medium text-foreground" data-testid="feature-smart-links-title">Smart Testimonial Links</p>
+                  <p className="text-muted-foreground" data-testid="feature-smart-links-description">Links automatically include client details, so they just focus on writing their testimonial</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3" data-testid="feature-embeddable-widget-highlight">
+                <div className="flex-shrink-0 w-2 h-2 bg-primary rounded-full mt-2"></div>
+                <div>
+                  <p className="font-medium text-foreground" data-testid="feature-embeddable-widget-title">Embeddable Widget Code</p>
+                  <p className="text-muted-foreground" data-testid="feature-embeddable-widget-description">Get widget code to embed your testimonial wall on any website instantly</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Quick Stats */}

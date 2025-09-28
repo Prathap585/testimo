@@ -3,10 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Palette, LayoutGrid, Star, CheckCircle } from "lucide-react";
 import Navigation from "@/components/navigation";
 import Footer from "@/components/footer";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+  
   const handleGetStarted = () => {
-    window.location.href = "/api/login";
+    setLocation("/signup");
   };
 
   return (
@@ -21,7 +24,7 @@ export default function Landing() {
               Get testimonials without <span className="text-primary">chasing clients</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto" data-testid="hero-subtitle">
-              Automate testimonial collection and build trust effortlessly. Let your clients come to you with powerful automation.
+              Send smart testimonial links with prepopulated client details, get embeddable widget code for your website, and automate the entire collection process.
             </p>
             <Button 
               onClick={handleGetStarted}
@@ -103,28 +106,28 @@ export default function Landing() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1: Automated Reminders */}
-            <Card className="hover:shadow-xl transition-shadow duration-300" data-testid="feature-automated-reminders">
+            {/* Feature 1: Smart Testimonial Links */}
+            <Card className="hover:shadow-xl transition-shadow duration-300" data-testid="feature-smart-links">
               <CardContent className="p-8">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
                   <Clock className="text-primary text-xl" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-4">Automated Reminders</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-4">Smart Testimonial Links</h3>
                 <p className="text-muted-foreground mb-6">
-                  Set up smart reminder sequences that follow up with clients automatically. Never lose a testimonial opportunity again.
+                  Links automatically include client details and project information, so clients just focus on writing their testimonial - no forms to fill out.
                 </p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    Customizable timing
+                    Prepopulated client details
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    Multiple reminder types
+                    Automated follow-up reminders
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    Smart delivery optimization
+                    One-click testimonial submission
                   </li>
                 </ul>
               </CardContent>
@@ -157,28 +160,28 @@ export default function Landing() {
               </CardContent>
             </Card>
 
-            {/* Feature 3: Testimonial Wall */}
-            <Card className="hover:shadow-xl transition-shadow duration-300" data-testid="feature-testimonial-wall">
+            {/* Feature 3: Embeddable Widget Code */}
+            <Card className="hover:shadow-xl transition-shadow duration-300" data-testid="feature-embeddable-widget">
               <CardContent className="p-8">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
                   <LayoutGrid className="text-primary text-xl" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-4">Testimonial Wall</h3>
+                <h3 className="text-xl font-semibold text-foreground mb-4">Embeddable Widget Code</h3>
                 <p className="text-muted-foreground mb-6">
-                  Showcase your testimonials with a beautiful, embeddable wall that builds trust and drives conversions on any website.
+                  Get ready-to-use widget code to embed your testimonial wall on any website. Copy, paste, and your testimonials appear instantly.
                 </p>
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    Easy embedding
+                    Copy & paste widget code
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    Multiple layouts
+                    Works on any website
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-primary mr-2" />
-                    SEO optimized
+                    Auto-updates with new testimonials
                   </li>
                 </ul>
               </CardContent>
@@ -299,7 +302,12 @@ export default function Landing() {
           </div>
 
           <div className="text-center mt-12">
-            <Button variant="link" className="text-primary" data-testid="link-view-detailed-pricing">
+            <Button 
+              variant="link" 
+              className="text-primary" 
+              onClick={() => setLocation("/pricing")}
+              data-testid="link-view-detailed-pricing"
+            >
               View detailed pricing →
             </Button>
           </div>
