@@ -374,25 +374,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/signup", authRoutes.signup);
   app.post("/api/auth/login", authRoutes.login);
 
-  // Email test route for debugging
-  app.post("/api/test-email", async (req, res) => {
-    try {
-      console.log("🧪 Testing email service...");
-      const testResult = await sendEmail({
-        to: "prathapr585@gmail.com", // MailerSend admin email
-        from: "noreply@testimo.com",
-        subject: "Test Email from Testimo",
-        text: "This is a test email to verify MailerSend configuration.",
-        html: "<p>This is a test email to verify MailerSend configuration.</p>"
-      });
-      
-      console.log("🧪 Test email result:", testResult);
-      res.json({ success: testResult, message: testResult ? "Test email sent successfully" : "Test email failed" });
-    } catch (error) {
-      console.error("🧪 Test email error:", error);
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
 
 
   // Auth routes
