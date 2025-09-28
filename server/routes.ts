@@ -379,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("🧪 Testing email service...");
       const testResult = await sendEmail({
-        to: "prathap.nani537@gmail.com", // Replace with your email
+        to: "prathapr585@gmail.com", // MailerSend admin email
         from: "noreply@testimo.com",
         subject: "Test Email from Testimo",
         text: "This is a test email to verify MailerSend configuration.",
