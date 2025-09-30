@@ -1348,6 +1348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const objectPath = `/objects/${req.params.objectPath}`;
+      console.log("Video request - objectPath:", objectPath);
+      console.log("Video request - req.params.objectPath:", req.params.objectPath);
 
       // Security: Verify video belongs to a testimonial
       const testimonial = await db.query.testimonials.findFirst({
@@ -1360,13 +1362,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ),
       });
 
+      console.log("Found testimonial:", testimonial ? { id: testimonial.id, videoUrl: testimonial.videoUrl, storageKey: testimonial.storageKey } : null);
+
       if (!testimonial) {
+        console.log("No testimonial found for path:", objectPath);
         return res.status(404).json({ message: "Video not found" });
       }
 
+      // Use the actual video URL from the testimonial
+      const actualPath = testimonial.videoUrl || testimonial.storageKey || objectPath;
+      console.log("Attempting to fetch from storage, path:", actualPath);
+
       const objectStorageService = new ObjectStorageService();
       const objectFile =
-        await objectStorageService.getObjectEntityFile(objectPath);
+        await objectStorageService.getObjectEntityFile(actualPath);
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving video:", error);

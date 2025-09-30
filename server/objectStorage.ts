@@ -91,10 +91,21 @@ export class ObjectStorageService {
       entityDir = `${entityDir}/`;
     }
     const objectEntityPath = `${entityDir}${entityId}`;
+    console.log("[ObjectStorage] Looking up video:");
+    console.log("  - objectPath:", objectPath);
+    console.log("  - entityId:", entityId);
+    console.log("  - entityDir:", entityDir);
+    console.log("  - objectEntityPath:", objectEntityPath);
+    
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+    console.log("  - bucketName:", bucketName);
+    console.log("  - objectName:", objectName);
+    
     const bucket = objectStorageClient.bucket(bucketName);
     const objectFile = bucket.file(objectName);
     const [exists] = await objectFile.exists();
+    console.log("  - exists:", exists);
+    
     if (!exists) {
       throw new ObjectNotFoundError();
     }
