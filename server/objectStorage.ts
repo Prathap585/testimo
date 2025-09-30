@@ -63,6 +63,14 @@ export class ObjectStorageService {
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
+    console.log("[ObjectStorage] Generating video upload URL:");
+    console.log("  - privateObjectDir:", privateObjectDir);
+    console.log("  - objectId:", objectId);
+    console.log("  - fullPath:", fullPath);
+    console.log("  - objectPath (returned to client):", objectPath);
+    console.log("  - bucketName:", bucketName);
+    console.log("  - objectName:", objectName);
+
     // Sign URL for PUT method with TTL
     const uploadURL = await signObjectURL({
       bucketName,
@@ -70,6 +78,8 @@ export class ObjectStorageService {
       method: "PUT",
       ttlSec: 900, // 15 minutes
     });
+
+    console.log("  - uploadURL generated successfully");
 
     return { uploadURL, objectPath };
   }
