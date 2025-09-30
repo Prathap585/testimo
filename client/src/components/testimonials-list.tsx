@@ -16,7 +16,8 @@ import {
   XCircle, 
   Clock,
   User,
-  Building
+  Building,
+  Video
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -219,9 +220,29 @@ export default function TestimonialsList({ projectId }: TestimonialsListProps) {
                   </DropdownMenu>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground leading-relaxed" data-testid={`testimonial-content-${testimonial.id}`}>
-                    "{testimonial.content}"
-                  </p>
+                  {testimonial.type === "video" && testimonial.videoUrl ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Video className="h-4 w-4" />
+                        <span>Video Testimonial</span>
+                      </div>
+                      <div className="rounded-lg overflow-hidden bg-black">
+                        <video 
+                          controls 
+                          className="w-full max-h-96"
+                          data-testid={`testimonial-video-${testimonial.id}`}
+                        >
+                          <source src={testimonial.videoUrl} type="video/mp4" />
+                          <source src={testimonial.videoUrl} type="video/webm" />
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-foreground leading-relaxed" data-testid={`testimonial-content-${testimonial.id}`}>
+                      "{testimonial.content}"
+                    </p>
+                  )}
                   <div className="mt-4 pt-4 border-t border-yellow-200 flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
                       Submitted {testimonial.createdAt ? new Date(testimonial.createdAt).toLocaleDateString() : 'Unknown date'}
@@ -299,9 +320,29 @@ export default function TestimonialsList({ projectId }: TestimonialsListProps) {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-foreground leading-relaxed">
-                    "{testimonial.content}"
-                  </p>
+                  {testimonial.type === "video" && testimonial.videoUrl ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <Video className="h-4 w-4" />
+                        <span>Video Testimonial</span>
+                      </div>
+                      <div className="rounded-lg overflow-hidden bg-black">
+                        <video 
+                          controls 
+                          className="w-full max-h-96"
+                          data-testid={`testimonial-video-${testimonial.id}`}
+                        >
+                          <source src={testimonial.videoUrl} type="video/mp4" />
+                          <source src={testimonial.videoUrl} type="video/webm" />
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-foreground leading-relaxed">
+                      "{testimonial.content}"
+                    </p>
+                  )}
                   <div className="mt-4 pt-4 border-t border-green-200">
                     <span className="text-sm text-muted-foreground">
                       Published {testimonial.updatedAt ? new Date(testimonial.updatedAt).toLocaleDateString() : 'Unknown date'}

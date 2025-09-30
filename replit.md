@@ -96,6 +96,12 @@ Fixed video testimonial submission functionality for public testimonial forms:
 - Video upload flow: Get upload URL → Upload to object storage → Create testimonial → Attach video metadata
 - Tested end-to-end with successful video testimonial submission
 
+### Video Display Fix
+- Updated `testimonials-list` component to render video player for video testimonials
+- Component now checks `testimonial.type === "video"` and displays HTML5 video player
+- Video testimonials show video icon indicator and playback controls
+- Text testimonials continue to display as before with quote formatting
+
 ## Testimonial Link Prepopulation Fix (September 30, 2025)
 Fixed testimonial link prepopulation feature for manual reminder sends:
 
