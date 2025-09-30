@@ -1390,8 +1390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Client not found" });
         }
 
-        // Generate testimonial submission URL
-        const testimonialUrl = `${req.protocol}://${req.get("host")}/submit/${project.id}`;
+        // Generate testimonial submission URL with email for prepopulation
+        const testimonialUrl = `${req.protocol}://${req.get("host")}/submit/${project.id}?email=${encodeURIComponent(client.email)}`;
 
         const variables = {
           clientName: client.name,
