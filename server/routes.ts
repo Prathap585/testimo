@@ -1234,6 +1234,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // PUBLIC Video Upload endpoints for testimonial submissions
+  app.post("/api/video/upload-url/public", async (req, res) => {
+    try {
+      const { fileExtension, projectId } = req.body;
+
+      if (!projectId) {
+        return res.status(400).json({ message: "projectId is required" });
+      }
+
+      // Verify project exists (no ownership check - public endpoint)
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      // Validate file extension
+      const allowedExtensions = ["mp4", "webm", "mov", "avi"];
+      const ext = fileExtension || "mp4";
+      if (!allowedExtensions.includes(ext.toLowerCase())) {
+        return res.status(400).json({
+          message: "Invalid file extension. Only video files are allowed.",
+        });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const result = await objectStorageService.getVideoUploadURL(ext);
+
+      // Create secure binding token for this upload (no userId - public)
+      const uploadToken = {
+        objectPath: result.objectPath,
+        projectId: projectId,
+        exp: Date.now() + 30 * 60 * 1000, // 30 minutes
+      };
+
+      // Store token temporarily
+      const tokenId = nanoid();
+      global.uploadTokens = global.uploadTokens || new Map();
+      global.uploadTokens.set(tokenId, uploadToken);
+
+      res.json({
+        ...result,
+        uploadToken: tokenId,
+      });
+    } catch (error) {
+      console.error("Error getting public video upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  app.post("/api/testimonials/:id/video/public", async (req, res) => {
+    try {
+      const { objectPath, videoDuration, uploadToken } = req.body;
+
+      if (!objectPath || !uploadToken) {
+        return res.status(400).json({ 
+          message: "objectPath and uploadToken are required" 
+        });
+      }
+
+      // Get testimonial
+      const testimonial = await storage.getTestimonial(req.params.id);
+      if (!testimonial) {
+        return res.status(404).json({ message: "Testimonial not found" });
+      }
+
+      // Verify upload token and object path binding
+      global.uploadTokens = global.uploadTokens || new Map();
+      const tokenData = global.uploadTokens.get(uploadToken);
+
+      if (!tokenData) {
+        return res.status(400).json({ 
+          message: "Invalid or expired upload token" 
+        });
+      }
+
+      if (tokenData.exp < Date.now()) {
+        global.uploadTokens.delete(uploadToken);
+        return res.status(400).json({ message: "Upload token expired" });
+      }
+
+      if (
+        tokenData.objectPath !== objectPath ||
+        tokenData.projectId !== testimonial.projectId
+      ) {
+        return res.status(403).json({ message: "Invalid token binding" });
+      }
+
+      // Clean up used token
+      global.uploadTokens.delete(uploadToken);
+
+      const updatedTestimonial = await storage.updateTestimonial(
+        req.params.id,
+        {
+          type: "video",
+          videoUrl: objectPath,
+          videoStatus: "ready",
+          videoDuration: videoDuration,
+          videoProvider: "replit-storage",
+          storageKey: objectPath,
+        },
+      );
+
+      res.json(updatedTestimonial);
+    } catch (error) {
+      console.error("Error updating testimonial with video (public):", error);
+      res.status(500).json({ message: "Failed to update testimonial" });
+    }
+  });
+
   // Video serving endpoint (protected)
   app.get(
     "/objects/:objectPath(*)",

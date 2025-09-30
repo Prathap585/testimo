@@ -75,6 +75,44 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## Video Testimonial Submission Fix (September 30, 2025)
+Fixed video testimonial submission functionality for public testimonial forms:
+
+### Problem Identified
+- Video upload endpoints (`/api/video/upload-url` and `/api/testimonials/:id/video`) required authentication
+- Testimonial submission forms are public pages accessed by clients via email links (no authentication)
+- Video uploads were failing with 401 Unauthorized errors
+
+### Solution Implemented
+- **Public Video Upload Endpoints**: Created public versions of video upload endpoints
+  - `POST /api/video/upload-url/public` - Get signed upload URL without authentication
+  - `POST /api/testimonials/:id/video/public` - Attach video to testimonial without authentication
+- **Security Maintained**: Public endpoints still validate project existence and use upload tokens with 30-minute expiration
+- **Frontend Update**: Updated submit-testimonial page to use public endpoints for video uploads
+
+### Technical Details
+- Public endpoints validate project ID exists but skip user ownership checks
+- Upload tokens bind objectPath to projectId (no userId required for public submissions)
+- Video upload flow: Get upload URL → Upload to object storage → Create testimonial → Attach video metadata
+- Tested end-to-end with successful video testimonial submission
+
+## Testimonial Link Prepopulation Fix (September 30, 2025)
+Fixed testimonial link prepopulation feature for manual reminder sends:
+
+### Problem Identified
+- Manual "Send Now" button was generating testimonial URLs without email parameter
+- Automated reminders were correctly including email parameter for prepopulation
+
+### Solution Implemented
+- Updated manual reminder endpoint to include email parameter in testimonial URL
+- Testimonial URL format: `/submit/{projectId}?email={clientEmail}`
+- When clients click the link, their details (name, email, company) are automatically prepopulated
+
+### Key Improvements
+- Both manual and automated reminder sends now include email parameter
+- Client form experience improved with pre-filled information
+- Clients only need to add testimonial content and rating
+
 ## Email Service and Automated Reminders Fix (September 30, 2025)
 Fixed critical issues with email delivery and automated reminder system:
 

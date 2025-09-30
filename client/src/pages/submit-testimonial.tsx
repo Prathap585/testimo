@@ -155,8 +155,8 @@ export default function SubmitTestimonial() {
           setIsUploadingVideo(true);
           setVideoUploadProgress(10);
           
-          // Get upload URL
-          const uploadRes = await apiRequest("POST", "/api/video/upload-url", {
+          // Get upload URL (public endpoint)
+          const uploadRes = await apiRequest("POST", "/api/video/upload-url/public", {
             fileExtension: selectedVideo.name.split('.').pop()?.toLowerCase() || 'mp4',
             projectId: id
           });
@@ -188,8 +188,8 @@ export default function SubmitTestimonial() {
           
           setVideoUploadProgress(90);
           
-          // Update testimonial with video metadata
-          await apiRequest("POST", `/api/testimonials/${testimonial.id}/video`, {
+          // Update testimonial with video metadata (public endpoint)
+          await apiRequest("POST", `/api/testimonials/${testimonial.id}/video/public`, {
             objectPath: uploadResponse.objectPath,
             videoDuration: null,
             uploadToken: uploadResponse.uploadToken
