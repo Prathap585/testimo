@@ -1,6 +1,6 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Star, Calendar } from "lucide-react";
+import { Star, Calendar, Video as VideoIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -60,9 +60,29 @@ function TestimonialCard({ testimonial, compact = false }: {
             </Badge>
           </div>
           
-          <blockquote className={`text-foreground leading-relaxed ${compact ? "text-sm" : ""}`}>
-            "{testimonial.content}"
-          </blockquote>
+          {testimonial.videoUrl ? (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <VideoIcon className="h-4 w-4" />
+                <span>Video Testimonial</span>
+              </div>
+              <div className="rounded-lg overflow-hidden bg-black">
+                <video 
+                  controls 
+                  className="w-full max-h-96"
+                  preload="metadata"
+                >
+                  <source src={testimonial.videoUrl} type="video/mp4" />
+                  <source src={testimonial.videoUrl} type="video/webm" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          ) : (
+            <blockquote className={`text-foreground leading-relaxed ${compact ? "text-sm" : ""}`}>
+              "{testimonial.content}"
+            </blockquote>
+          )}
           
           <div className="border-t pt-4">
             <div className="font-medium text-foreground">{testimonial.clientName}</div>
