@@ -1343,42 +1343,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Video serving endpoint (protected)
-  app.get(
-    "/objects/:objectPath(*)",
-    authenticateJWT,
-    async (req: AuthenticatedRequest, res) => {
-      try {
-        const objectPath = `/objects/${req.params.objectPath}`;
+  // Video serving endpoint (PUBLIC - for video testimonials)
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    try {
+      const objectPath = `/objects/${req.params.objectPath}`;
 
-        // Security: Verify user has access to this video
-        // Find the testimonial that uses this video
-        const testimonials = await storage.getAllTestimonialsByUserId(
-          req.user!.userId,
-        );
-        const hasAccess = testimonials.some(
-          (testimonial) =>
-            testimonial.videoUrl === req.params.objectPath ||
-            testimonial.storageKey === req.params.objectPath,
-        );
+      // Security: Verify video belongs to a testimonial
+      const testimonial = await db.query.testimonials.findFirst({
+        where: (testimonials, { or, eq }) =>
+          or(
+            eq(testimonials.videoUrl, req.params.objectPath),
+            eq(testimonials.storageKey, req.params.objectPath),
+            eq(testimonials.videoUrl, objectPath),
+            eq(testimonials.storageKey, objectPath),
+          ),
+      });
 
-        if (!hasAccess) {
-          return res.status(403).json({ message: "Access denied" });
-        }
-
-        const objectStorageService = new ObjectStorageService();
-        const objectFile =
-          await objectStorageService.getObjectEntityFile(objectPath);
-        await objectStorageService.downloadObject(objectFile, res);
-      } catch (error) {
-        console.error("Error serving video:", error);
-        if (error instanceof ObjectNotFoundError) {
-          return res.status(404).json({ message: "Video not found" });
-        }
-        res.status(500).json({ message: "Failed to serve video" });
+      if (!testimonial) {
+        return res.status(404).json({ message: "Video not found" });
       }
-    },
-  );
+
+      const objectStorageService = new ObjectStorageService();
+      const objectFile =
+        await objectStorageService.getObjectEntityFile(objectPath);
+      await objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving video:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      res.status(500).json({ message: "Failed to serve video" });
+    }
+  });
 
   // Reminder System API endpoints
   app.get(
