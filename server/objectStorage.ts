@@ -63,14 +63,6 @@ export class ObjectStorageService {
 
     const { bucketName, objectName } = parseObjectPath(fullPath);
 
-    console.log("[ObjectStorage] Generating video upload URL:");
-    console.log("  - privateObjectDir:", privateObjectDir);
-    console.log("  - objectId:", objectId);
-    console.log("  - fullPath:", fullPath);
-    console.log("  - objectPath (returned to client):", objectPath);
-    console.log("  - bucketName:", bucketName);
-    console.log("  - objectName:", objectName);
-
     // Sign URL for PUT method with TTL
     const uploadURL = await signObjectURL({
       bucketName,
@@ -78,8 +70,6 @@ export class ObjectStorageService {
       method: "PUT",
       ttlSec: 900, // 15 minutes
     });
-
-    console.log("  - uploadURL generated successfully");
 
     return { uploadURL, objectPath };
   }
@@ -101,21 +91,10 @@ export class ObjectStorageService {
       entityDir = `${entityDir}/`;
     }
     const objectEntityPath = `${entityDir}${entityId}`;
-    console.log("[ObjectStorage] Looking up video:");
-    console.log("  - objectPath:", objectPath);
-    console.log("  - entityId:", entityId);
-    console.log("  - entityDir:", entityDir);
-    console.log("  - objectEntityPath:", objectEntityPath);
-    
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    console.log("  - bucketName:", bucketName);
-    console.log("  - objectName:", objectName);
-    
     const bucket = objectStorageClient.bucket(bucketName);
     const objectFile = bucket.file(objectName);
     const [exists] = await objectFile.exists();
-    console.log("  - exists:", exists);
-    
     if (!exists) {
       throw new ObjectNotFoundError();
     }

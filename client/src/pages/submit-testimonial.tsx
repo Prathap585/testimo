@@ -165,7 +165,7 @@ export default function SubmitTestimonial() {
           setVideoUploadProgress(30);
           
           // Upload video to object storage
-          const uploadResult = await fetch(uploadResponse.uploadUrl, {
+          const uploadResult = await fetch(uploadResponse.uploadURL, {
             method: 'PUT',
             body: selectedVideo,
             headers: {
