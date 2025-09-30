@@ -374,8 +374,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/signup", authRoutes.signup);
   app.post("/api/auth/login", authRoutes.login);
 
-
-
   // Auth routes
   app.get(
     "/api/auth/user",
