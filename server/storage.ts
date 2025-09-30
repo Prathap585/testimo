@@ -207,7 +207,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteClient(id: string): Promise<void> {
-    await db.delete(clients).where(eq(clients.id, id));
+    // Use transaction to ensure atomicity - if any step fails, all are rolled back
+    await db.transaction(async (tx) => {
+      // Delete all reminders associated with this client
+      await tx.delete(reminders).where(eq(reminders.clientId, id));
+      
+      // Set clientId to null for testimonials (since it's optional)
+      // This preserves testimonials but disassociates them from the client
+      await tx.update(testimonials)
+        .set({ clientId: null })
+        .where(eq(testimonials.clientId, id));
+      
+      // Now safe to delete the client
+      await tx.delete(clients).where(eq(clients.id, id));
+    });
   }
 
   // Testimonial operations
