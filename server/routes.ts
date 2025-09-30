@@ -127,7 +127,7 @@ async function sendTestimonialRequest(
 
     const emailSuccess = await sendEmail({
       to: client.email,
-      from: "noreply@testimo.com",
+      from: "noreply@testimo.co",
       subject: `Share your testimonial for ${project.name}`,
       text: emailContent,
       html: `<p>Hi ${client.name || client.email},</p>
