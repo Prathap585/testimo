@@ -75,6 +75,27 @@ Preferred communication style: Simple, everyday language.
 
 # Recent Changes
 
+## Email Service and Automated Reminders Fix (September 30, 2025)
+Fixed critical issues with email delivery and automated reminder system:
+
+### Email Configuration
+- **Domain Update**: Changed from email domain from `testimo.com` to verified domain `testimo.co`
+- **MailerSend Integration**: Confirmed working with `noreply@testimo.co` sender address
+- **Email Delivery**: Successfully tested and verified email sending functionality
+
+### Reminder System Fixes
+- **Manual Send Fix**: Fixed "Send Now" button that was returning 200 but not sending emails
+- **Automated Processing Fix**: Integrated email service with automated reminder processor
+- **Template Integration**: Both manual and automated sends now use project email template settings
+- **Variable Replacement**: Properly replaces {{clientName}}, {{projectName}}, {{testimonialUrl}} in messages
+- **Error Handling**: Added proper error handling for failed email sends with status updates
+
+### Key Improvements
+- **Scheduled Reminders**: Automated processor now actually sends emails at scheduled times
+- **Email Templates**: Uses project-configured subject and message templates for all sends
+- **Twilio Integration**: SMS functionality also integrated in reminder processor (pending SMS-capable number)
+- **Consistent Behavior**: Manual "Send Now" and automated scheduled sends work identically
+
 ## Overall Testimonial Wall Feature (September 2025)
 Added a comprehensive overall testimonial wall feature that allows users to showcase testimonials from all their projects in a unified view:
 

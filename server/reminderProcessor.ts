@@ -1,19 +1,95 @@
 import { storage } from "./storage";
 import { log } from "./vite";
+import { sendEmail } from "./emailService";
+import twilio from "twilio";
 
 // Track if processor is already running to prevent multiple instances
 let isProcessorRunning = false;
 let processingIntervalId: NodeJS.Timeout | null = null;
 
-// Helper function to send testimonial request (replicated from routes.ts)
+// Initialize Twilio client for SMS
+let twilioClient: any = null;
+if (
+  process.env.TWILIO_ACCOUNT_SID?.startsWith("AC") &&
+  process.env.TWILIO_AUTH_TOKEN &&
+  process.env.TWILIO_PHONE_NUMBER
+) {
+  try {
+    twilioClient = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+    );
+  } catch (error) {
+    console.error("[ReminderProcessor] Error initializing Twilio client:", error);
+  }
+}
+
+// Helper function to replace template variables
+function replaceTemplateVariables(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
+  }
+  return result;
+}
+
+// Helper function to send testimonial request
 async function sendTestimonialRequest(client: any, project: any, channel: string = "email") {
   const testimonialUrl = `${process.env.REPL_URL || 'http://localhost:5000'}/submit/${project.id}?email=${encodeURIComponent(client.email)}`;
   
   console.log(`[ReminderProcessor] Sending ${channel} testimonial request to ${client.email} for project ${project.name}`);
-  console.log(`[ReminderProcessor] Testimonial URL: ${testimonialUrl}`);
   
-  // TODO: Replace with actual email sending functionality
-  // For now, just log the action
+  const variables = {
+    clientName: client.name,
+    projectName: project.name,
+    testimonialUrl,
+    companyName: client.company || project.name,
+  };
+  
+  if (channel === "email") {
+    // Get email settings from project
+    const emailSettings = (project.emailSettings as { fromName: string; subject: string; message: string }) || {
+      fromName: project.name,
+      subject: "Please share your testimonial for {{projectName}}",
+      message: "Hi {{clientName}},\n\nI hope this message finds you well!\n\nI would greatly appreciate if you could take a few minutes to share your experience working with me on {{projectName}}. Your testimonial would mean a lot and help showcase the value of my work to future clients.\n\nYou can submit your testimonial using this link: {{testimonialUrl}}\n\nThank you so much for your time and support!\n\nBest regards"
+    };
+
+    // Replace template variables
+    const subject = replaceTemplateVariables(emailSettings.subject, variables);
+    const message = replaceTemplateVariables(emailSettings.message, variables);
+
+    // Send email
+    await sendEmail({
+      to: client.email,
+      from: "noreply@testimo.co",
+      subject: subject,
+      text: message,
+      html: message.replace(/\n/g, '<br>')
+    });
+    
+    console.log(`[ReminderProcessor] Email sent successfully to ${client.email}`);
+  } else if (channel === "sms") {
+    if (!twilioClient) {
+      throw new Error("SMS functionality is not available - Twilio not properly configured");
+    }
+    
+    if (!client.phone) {
+      throw new Error("Client has no phone number for SMS");
+    }
+    
+    const message = replaceTemplateVariables(
+      `Hi {{clientName}}! Would you mind sharing a quick testimonial about your experience with {{companyName}}? It would mean a lot: {{testimonialUrl}}`,
+      variables,
+    );
+
+    const result = await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: client.phone,
+    });
+    
+    console.log(`[ReminderProcessor] SMS sent successfully to ${client.phone}, SID: ${result.sid}`);
+  }
   
   return { success: true, url: testimonialUrl };
 }
@@ -154,36 +230,72 @@ async function processPendingReminders() {
         
         if (reminder.channel === "email") {
           // Send email reminder
-          await sendTestimonialRequest(client, project, "email");
-          
-          await storage.updateReminder(reminder.id, {
-            status: "sent",
-            attemptNumber: (reminder.attemptNumber || 0) + 1,
-            metadata: { 
-              ...(reminder.metadata || {}), 
-              sentAt: new Date().toISOString(),
-              processedAt: new Date().toISOString(),
-              automated: true
-            }
-          });
-          
-          console.log(`[ReminderProcessor] Email reminder sent for ${client.email}`);
+          try {
+            await sendTestimonialRequest(client, project, "email");
+            
+            await storage.updateReminder(reminder.id, {
+              status: "sent",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: { 
+                ...(reminder.metadata || {}), 
+                sentAt: new Date().toISOString(),
+                processedAt: new Date().toISOString(),
+                automated: true
+              }
+            });
+            
+            console.log(`[ReminderProcessor] Email reminder sent successfully for ${client.email}`);
+          } catch (emailError) {
+            console.error(`[ReminderProcessor] Failed to send email to ${client.email}:`, emailError);
+            
+            await storage.updateReminder(reminder.id, {
+              status: "failed",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: { 
+                ...(reminder.metadata || {}), 
+                failedAt: new Date().toISOString(),
+                processedAt: new Date().toISOString(),
+                error: emailError instanceof Error ? emailError.message : "Unknown error",
+                automated: true
+              }
+            });
+            errorCount++;
+            continue;
+          }
         } else if (reminder.channel === "sms") {
-          // SMS reminders would need Twilio integration
-          // For now, mark as sent but log that it's not implemented
-          console.log(`[ReminderProcessor] SMS reminder for ${client.email} - SMS automation not implemented, marking as sent`);
-          
-          await storage.updateReminder(reminder.id, {
-            status: "sent",
-            attemptNumber: (reminder.attemptNumber || 0) + 1,
-            metadata: { 
-              ...(reminder.metadata || {}), 
-              sentAt: new Date().toISOString(),
-              processedAt: new Date().toISOString(),
-              automated: true,
-              note: "SMS automation not implemented"
-            }
-          });
+          // Send SMS reminder
+          try {
+            await sendTestimonialRequest(client, project, "sms");
+            
+            await storage.updateReminder(reminder.id, {
+              status: "sent",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: { 
+                ...(reminder.metadata || {}), 
+                sentAt: new Date().toISOString(),
+                processedAt: new Date().toISOString(),
+                automated: true
+              }
+            });
+            
+            console.log(`[ReminderProcessor] SMS reminder sent successfully for ${client.phone}`);
+          } catch (smsError) {
+            console.error(`[ReminderProcessor] Failed to send SMS to ${client.phone}:`, smsError);
+            
+            await storage.updateReminder(reminder.id, {
+              status: "failed",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: { 
+                ...(reminder.metadata || {}), 
+                failedAt: new Date().toISOString(),
+                processedAt: new Date().toISOString(),
+                error: smsError instanceof Error ? smsError.message : "Unknown error",
+                automated: true
+              }
+            });
+            errorCount++;
+            continue;
+          }
         }
         
         // Schedule next recurring reminder if applicable

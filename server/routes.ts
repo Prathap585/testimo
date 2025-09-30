@@ -121,30 +121,38 @@ async function sendTestimonialRequest(
     `Sending ${channel} testimonial request to ${client.email} for project ${project.name}`,
   );
 
-  try {
-    // Use SendGrid to send actual emails
-    const emailContent = `Hi ${client.name || client.email},\n\nWe'd love to hear about your experience! Please share your testimonial by clicking the link below:\n\n${testimonialUrl}\n\nThank you!\n\nBest regards,\n${project.name}`;
+  if (channel === "email") {
+    // Get email settings from project
+    const emailSettings = (project.emailSettings as { fromName: string; subject: string; message: string }) || {
+      fromName: project.name,
+      subject: "Please share your testimonial for {{projectName}}",
+      message: "Hi {{clientName}},\n\nI hope this message finds you well!\n\nI would greatly appreciate if you could take a few minutes to share your experience working with me on {{projectName}}. Your testimonial would mean a lot and help showcase the value of my work to future clients.\n\nYou can submit your testimonial using this link: {{testimonialUrl}}\n\nThank you so much for your time and support!\n\nBest regards"
+    };
 
-    const emailSuccess = await sendEmail({
+    const variables = {
+      clientName: client.name,
+      projectName: project.name,
+      testimonialUrl,
+      companyName: client.company || project.name,
+    };
+
+    // Replace template variables
+    const subject = replaceTemplateVariables(emailSettings.subject, variables);
+    const message = replaceTemplateVariables(emailSettings.message, variables);
+
+    // Send email - this will throw on failure
+    await sendEmail({
       to: client.email,
       from: "noreply@testimo.co",
-      subject: `Share your testimonial for ${project.name}`,
-      text: emailContent,
-      html: `<p>Hi ${client.name || client.email},</p>
-             <p>We'd love to hear about your experience! Please share your testimonial by clicking the link below:</p>
-             <p><a href="${testimonialUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Share Your Testimonial</a></p>
-             <p>Or copy this link: ${testimonialUrl}</p>
-             <p>Thank you!</p>
-             <p>Best regards,<br>${project.name}</p>`,
+      subject: subject,
+      text: message,
+      html: message.replace(/\n/g, '<br>')
     });
 
-    if (emailSuccess) {
-      console.log(`Email sent successfully to ${client.email}`);
-    } else {
-      console.error(`Failed to send email to ${client.email}`);
-    }
-  } catch (error) {
-    console.error(`Error sending email to ${client.email}:`, error);
+    console.log(`Email sent successfully to ${client.email}`);
+  } else if (channel === "sms") {
+    // SMS not implemented yet, throw error
+    throw new Error("SMS functionality not yet implemented");
   }
 
   return { success: true, url: testimonialUrl };
