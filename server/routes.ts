@@ -1393,17 +1393,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         if (reminder.channel === "email") {
-          // For now, we'll mark as sent - email integration would go here
-          await storage.updateReminder(req.params.id, {
-            status: "sent",
-            attemptNumber: (reminder.attemptNumber || 0) + 1,
-            metadata: { sentAt: new Date().toISOString(), variables },
-          });
+          try {
+            // Get email settings from project
+            const emailSettings = (project.emailSettings as { fromName: string; subject: string; message: string }) || {
+              fromName: project.name,
+              subject: "Please share your testimonial for {{projectName}}",
+              message: "Hi {{clientName}},\n\nI hope this message finds you well!\n\nI would greatly appreciate if you could take a few minutes to share your experience working with me on {{projectName}}. Your testimonial would mean a lot and help showcase the value of my work to future clients.\n\nYou can submit your testimonial using this link: {{testimonialUrl}}\n\nThank you so much for your time and support!\n\nBest regards"
+            };
 
-          // Schedule next reminder if this is a recurring reminder
-          await scheduleNextRecurringReminder(reminder, project);
+            // Replace template variables
+            const subject = replaceTemplateVariables(emailSettings.subject, variables);
+            const message = replaceTemplateVariables(emailSettings.message, variables);
 
-          res.json({ message: "Email reminder sent successfully", variables });
+            // Send email
+            await sendEmail({
+              to: client.email,
+              from: "noreply@testimo.co",
+              subject: subject,
+              text: message,
+              html: message.replace(/\n/g, '<br>')
+            });
+
+            await storage.updateReminder(req.params.id, {
+              status: "sent",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: { 
+                sentAt: new Date().toISOString(), 
+                variables,
+                email: client.email,
+                subject,
+                message
+              },
+            });
+
+            // Schedule next reminder if this is a recurring reminder
+            await scheduleNextRecurringReminder(reminder, project);
+
+            res.json({ message: "Email reminder sent successfully", variables });
+          } catch (emailError) {
+            console.error("Email sending failed:", emailError);
+            await storage.updateReminder(req.params.id, {
+              status: "failed",
+              attemptNumber: (reminder.attemptNumber || 0) + 1,
+              metadata: {
+                failedAt: new Date().toISOString(),
+                error: (emailError as Error).message,
+              },
+            });
+
+            res.status(500).json({ message: "Failed to send email reminder" });
+          }
         } else if (reminder.channel === "sms") {
           if (!client.phone) {
             return res
