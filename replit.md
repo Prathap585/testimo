@@ -123,6 +123,12 @@ Completely redesigned the public homepage (landing.tsx) to be more professional,
 - Improved visual hierarchy and flow
 - Removed fake user testimonials (no users yet)
 
+### Logo Integration (October 2, 2025)
+- Replaced text "Testimo" in navigation header with logo image
+- Using `social-preview-trans.png` (transparent background) for clean display
+- Logo files location: `client/assets/`
+- Logo dimensions: h-8 (32px height) with auto width for proper aspect ratio
+
 ## Video Testimonial Submission Fix (September 30, 2025)
 Fixed video testimonial submission functionality for public testimonial forms:
 

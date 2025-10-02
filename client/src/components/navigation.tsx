@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import logoImage from "../../assets/social-preview-trans.png";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -48,10 +49,14 @@ export default function Navigation() {
           <div className="flex items-center">
             <Link
               href="/"
-              className="text-2xl font-bold text-primary"
+              className="flex items-center"
               data-testid="logo"
             >
-              Testimo
+              <img 
+                src={logoImage} 
+                alt="Testimo" 
+                className="h-8 w-auto"
+              />
             </Link>
           </div>
 
