@@ -49,15 +49,14 @@ export default function Navigation() {
           <div className="flex items-center">
             <Link
               href="/"
-              className="flex items-center"
+              className="text-2xl font-bold text-primary"
               data-testid="logo"
             >
-              <img 
-                src={logoImage} 
-                alt="Testimo" 
-                className="h-8 w-auto"
-              />
+              Testimo
             </Link>
+            {/* <Link href="/" className="flex items-center" data-testid="logo">
+              <img src={logoImage} alt="Testimo" className="h-10 w-auto" />
+            </Link> */}
           </div>
 
           {/* Desktop Navigation */}
